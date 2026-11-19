@@ -5,6 +5,7 @@ import { AchievementsPanel } from "../src/components/AchievementsPanel";
 import { GamePanel } from "../src/components/GamePanel";
 import { HomeLobby } from "../src/components/HomeLobby";
 import { t } from "../src/i18n";
+import { useTelegramWebApp } from "../src/telegram/useTelegramWebApp";
 
 function readSessionId() {
   if (typeof window === "undefined") return "";
@@ -19,20 +20,12 @@ function setSessionInUrl(sessionId: string) {
 
 export default function HomePage() {
   const [sessionId, setSessionId] = useState("");
-  const [initData, setInitData] = useState("");
-  const [lang, setLang] = useState<string | undefined>(undefined);
-  const [booted, setBooted] = useState(false);
+  const { ready, initData, lang, outsideTelegram } = useTelegramWebApp();
   const apiBase = useMemo(() => process.env.NEXT_PUBLIC_API_BASE ?? "", []);
   const copy = t(lang);
 
   useEffect(() => {
     setSessionId(readSessionId());
-    const tg = window.Telegram?.WebApp;
-    tg?.ready?.();
-    tg?.expand?.();
-    setInitData(tg?.initData ?? process.env.NEXT_PUBLIC_DEV_INIT_DATA ?? "");
-    setLang(tg?.initDataUnsafe?.user?.language_code);
-    setBooted(true);
   }, []);
 
   function enterSession(next: string) {
@@ -63,31 +56,38 @@ export default function HomePage() {
         {copy.appName}
       </h1>
 
-      {!booted ? (
+      {!ready ? (
         <p style={{ opacity: 0.7 }}>{copy.waitingInitData}</p>
-      ) : !sessionId ? (
-        !initData ? (
-          <p style={{ opacity: 0.85 }}>{copy.waitingInitData}</p>
-        ) : (
-          <>
-            <HomeLobby
-              apiBase={apiBase}
-              initData={initData}
-              lang={lang}
-              copy={{
-                appName: copy.appName,
-                homeTagline: copy.homeTagline,
-                startMatch: copy.startMatch,
-                homeHint: copy.homeHint,
-                creating: copy.creating,
-              }}
-              onStarted={enterSession}
-            />
-            <AchievementsPanel apiBase={apiBase} initData={initData} lang={lang} />
-          </>
-        )
       ) : !initData ? (
-        <p style={{ opacity: 0.85 }}>{copy.waitingInitData}</p>
+        <section style={{ maxWidth: "28rem", display: "grid", gap: "0.75rem" }}>
+          <p style={{ margin: 0, fontSize: "1.1rem", lineHeight: 1.45 }}>
+            {outsideTelegram ? copy.openInsideTelegram : copy.waitingInitData}
+          </p>
+          <p style={{ margin: 0, opacity: 0.75 }}>{copy.openViaBotHint}</p>
+          <a
+            href="https://t.me/tgquarto_bot"
+            style={{ color: "#c49a2a", fontWeight: 700 }}
+          >
+            @tgquarto_bot
+          </a>
+        </section>
+      ) : !sessionId ? (
+        <>
+          <HomeLobby
+            apiBase={apiBase}
+            initData={initData}
+            lang={lang}
+            copy={{
+              appName: copy.appName,
+              homeTagline: copy.homeTagline,
+              startMatch: copy.startMatch,
+              homeHint: copy.homeHint,
+              creating: copy.creating,
+            }}
+            onStarted={enterSession}
+          />
+          <AchievementsPanel apiBase={apiBase} initData={initData} lang={lang} />
+        </>
       ) : (
         <>
           <GamePanel
