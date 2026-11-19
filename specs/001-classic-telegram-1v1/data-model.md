@@ -18,12 +18,15 @@
 |-------|--------|
 | `cardId` | Public id embedded in deep link / start_param |
 | `ownerTelegramUserId` | Creator |
-| `chatId` | Telegram chat where card message lives (nullable if private-only) |
+| `surface` | `group` \| `dm` — group chat card vs private chat with the bot |
+| `chatId` | Telegram chat of the card message (group id or DM id) |
 | `messageId` | Bot message to edit for live status |
 | `createdAt` | |
 | `slots` | 0..8 `MatchSession` references |
 
 **Validation**: Creating a slot when `slots.length === 8` → reject.
+
+Same slot/session rules on both surfaces; only message placement differs.
 
 ### MatchSession
 
@@ -40,8 +43,8 @@
 | `openerSeat` | 0 \| 1 after random assign (may swap after pie) |
 | `turnSeat` | whose action is required |
 | `phase` | engine phase (see transitions) |
-| `board` | 16 cells: `null` or piece id |
-| `pool` | remaining piece ids |
+| `board` | `cellCount` cells: `null` or piece id (`cellCount` from active modules) |
+| `pool` | remaining piece ids (universe from active modules) |
 | `pieceInHand` | piece id or null |
 | `voidedSets` | list of set masks dead under Void |
 | `turnNotifiedAt` | timestamp for 24h claim |
@@ -49,9 +52,17 @@
 | `rematchOfSessionId` | optional link |
 | `createdAt` / `updatedAt` | |
 
-### Piece
+### PieceSet (from active `GameModule`, not a fixed table)
 
-Canonical 16 ids: bitfield of 4 binary traits (color, height, shape, top).
+Modules define the piece universe for a session. Classic `classic4`:
+
+- `traitCount` = 4 binary traits (color, height, shape, top)
+- `pieceCount` = \(2^{\text{traitCount}}\) = 16
+- `cellCount` = 16 (4×4)
+
+Other packs may change trait arity, encoding, piece count, and board size (see catalog / later specs). Session stores only **piece ids** opaque to Telegram; engine + modules interpret traits.
+
+v1 registers only `classic4`; schema and API must not assume “always 16×4” beyond that module’s defaults.
 
 ### AchievementDef (static config)
 

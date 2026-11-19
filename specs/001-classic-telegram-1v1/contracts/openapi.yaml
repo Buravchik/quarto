@@ -412,12 +412,15 @@ components:
           properties:
             type: { $ref: '#/components/schemas/IntentType' }
             pieceId: { type: string }
-            cellIndex: { type: integer, minimum: 0, maximum: 15 }
+            cellIndex:
+              type: integer
+              minimum: 0
+              description: Board cell index; valid range is 0 .. cellCount-1 from active modules (classic4 = 0..15)
             setCells:
               type: array
               minItems: 4
-              maxItems: 4
-              items: { type: integer, minimum: 0, maximum: 15 }
+              items: { type: integer, minimum: 0 }
+              description: Cells of declared set; length/geometry from active modules (classic line = 4)
             pieTake: { type: boolean }
 
     RematchBody:
@@ -523,14 +526,20 @@ components:
         turnSeat: { type: integer, enum: [0, 1], nullable: true }
         board:
           type: array
-          minItems: 16
-          maxItems: 16
+          description: Length = cellCount from active modules (classic4 = 16)
           items:
             type: string
             nullable: true
         pool:
           type: array
+          description: Remaining piece ids; universe size from active modules
           items: { type: string }
+        traitCount:
+          type: integer
+          description: From active modules (classic4 = 4)
+        cellCount:
+          type: integer
+          description: From active modules (classic4 = 16)
         pieceInHand: { type: string, nullable: true }
         turnNotifiedAt: { type: string, format: date-time, nullable: true }
         outcome:
