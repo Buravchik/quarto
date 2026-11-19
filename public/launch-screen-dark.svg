@@ -1,14 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- Dark theme: light mark. Same Quarto silhouette as launch-screen.svg. -->
-  <g fill="#7EC8C4" fill-rule="evenodd">
-    <path d="M88 88H424V424H88ZM106 106V406H406V106Z"/>
-    <path d="M178 106H196V406H178ZM250 106H268V406H250ZM322 106H340V406H322Z"/>
-    <path d="M106 178H406V196H106ZM106 250H406V268H106ZM106 322H406V340H106Z"/>
-    <circle cx="142" cy="130" r="20"/>
-    <rect x="126" y="148" width="32" height="26" rx="5"/>
-    <path d="M232 142A18 18 0 1 1 232.01 142ZM232 152A8 8 0 1 0 232.01 152Z"/>
-    <rect x="216" y="160" width="32" height="14" rx="3"/>
-    <rect x="120" y="214" width="44" height="40" rx="4"/>
-    <path d="M214 220H258V256H214ZM222 228H250V248H222Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill-rule="evenodd">
+  <!-- Quarto launch — dark theme. Same pieces, lighter teal + amber. -->
+
+  <g fill="#7EC8C4">
+    <ellipse cx="168" cy="250" rx="46" ry="12"/>
+    <rect x="134" y="118" width="68" height="134" rx="34"/>
+    <circle cx="168" cy="100" r="42"/>
+  </g>
+
+  <g fill="#E0C56A">
+    <ellipse cx="344" cy="250" rx="42" ry="11"/>
+    <rect x="314" y="168" width="60" height="84" rx="30"/>
+    <path d="M344 108c26 0 46 20 46 46s-20 46-46 46-46-20-46-46 20-46 46-46zm0 20c-14.4 0-26 11.6-26 26s11.6 26 26 26 26-11.6 26-26-11.6-26-26-26z"/>
+  </g>
+
+  <g fill="#7EC8C4">
+    <ellipse cx="168" cy="430" rx="46" ry="12"/>
+    <rect x="130" y="350" width="76" height="82" rx="8"/>
+    <path d="M138 268h60v84h-60zm12 12h36v60h-36z"/>
+  </g>
+
+  <g fill="#E0C56A">
+    <ellipse cx="344" cy="430" rx="42" ry="11"/>
+    <rect x="310" y="360" width="68" height="72" rx="8"/>
+    <rect x="316" y="300" width="56" height="62" rx="6"/>
   </g>
 </svg>
