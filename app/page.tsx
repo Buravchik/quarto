@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AchievementsPanel } from "../src/components/AchievementsPanel";
 import { GamePanel } from "../src/components/GamePanel";
 import { HomeLobby } from "../src/components/HomeLobby";
 import { t } from "../src/i18n";
@@ -68,34 +69,40 @@ export default function HomePage() {
         !initData ? (
           <p style={{ opacity: 0.85 }}>{copy.waitingInitData}</p>
         ) : (
-          <HomeLobby
-            apiBase={apiBase}
-            initData={initData}
-            lang={lang}
-            copy={{
-              appName: copy.appName,
-              homeTagline: copy.homeTagline,
-              startMatch: copy.startMatch,
-              homeHint: copy.homeHint,
-              creating: copy.creating,
-            }}
-            onStarted={enterSession}
-          />
+          <>
+            <HomeLobby
+              apiBase={apiBase}
+              initData={initData}
+              lang={lang}
+              copy={{
+                appName: copy.appName,
+                homeTagline: copy.homeTagline,
+                startMatch: copy.startMatch,
+                homeHint: copy.homeHint,
+                creating: copy.creating,
+              }}
+              onStarted={enterSession}
+            />
+            <AchievementsPanel apiBase={apiBase} initData={initData} lang={lang} />
+          </>
         )
       ) : !initData ? (
         <p style={{ opacity: 0.85 }}>{copy.waitingInitData}</p>
       ) : (
-        <GamePanel
-          apiBase={apiBase}
-          sessionId={sessionId}
-          initData={initData}
-          onLeave={() => {
-            setSessionId("");
-            const url = new URL(window.location.href);
-            url.searchParams.delete("sessionId");
-            window.history.replaceState({}, "", url.toString());
-          }}
-        />
+        <>
+          <GamePanel
+            apiBase={apiBase}
+            sessionId={sessionId}
+            initData={initData}
+            onLeave={() => {
+              setSessionId("");
+              const url = new URL(window.location.href);
+              url.searchParams.delete("sessionId");
+              window.history.replaceState({}, "", url.toString());
+            }}
+          />
+          <AchievementsPanel apiBase={apiBase} initData={initData} lang={lang} />
+        </>
       )}
     </main>
   );

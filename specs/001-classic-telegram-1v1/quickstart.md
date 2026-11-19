@@ -71,6 +71,12 @@ npm run test:contract  # initData reject; seat isolation; slot cap; settings; re
 
 Live Telegram two-account smoke for A–G remains manual after deploy.
 
+API prod smoke (forged initData, no Telegram UI):
+
+```bash
+BOT_TOKEN=… node scripts/smoke-prod.mjs
+```
+
 ## Production host (Sudoku pattern)
 
 - **Bot + API**: Cloud Run service (`WEBHOOK_URL=https://<service>/telegram`, secrets for `BOT_TOKEN` + `DATABASE_URL`).
