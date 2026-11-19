@@ -40,6 +40,7 @@ export const sessions = pgTable("sessions", {
   seat1: jsonb("seat1").$type<{ telegramUserId: string; joinedAt: string } | null>(),
   openerSeat: integer("opener_seat"),
   turnSeat: integer("turn_seat"),
+  lastPlacerSeat: integer("last_placer_seat"),
   phase: varchar("phase", { length: 32 }).notNull().default("waiting"),
   board: jsonb("board").$type<(string | null)[] | Record<string, string | null>>().notNull(),
   pool: jsonb("pool").$type<string[]>().notNull(),

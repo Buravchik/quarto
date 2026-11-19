@@ -56,20 +56,20 @@ description: "Task list for Quarto classic Telegram 1v1"
 
 ### Tests for User Story 1
 
-- [ ] T013 [P] [US1] Unit tests classic lines/win/draw/illegal declare in `tests/unit/quarto/classic.test.ts`
-- [ ] T014 [P] [US1] Contract tests initData 401 + seat isolation for intents in `tests/contract/api/auth_intent.test.ts`
-- [ ] T015 [P] [US1] Contract test slot cap `409 slot_cap` in `tests/contract/api/slot_cap.test.ts` (cite `data-model.md` `ChallengeCard.slots` max 8)
+- [x] T013 [P] [US1] Unit tests classic lines/win/draw/illegal declare in `tests/unit/quarto/classic.test.ts`
+- [x] T014 [P] [US1] Contract tests initData 401 + seat isolation for intents in `tests/contract/api/auth_intent.test.ts`
+- [x] T015 [P] [US1] Contract test slot cap `409 slot_cap` in `tests/contract/api/slot_cap.test.ts` (cite `data-model.md` `ChallengeCard.slots` max 8)
 
 ### Implementation for User Story 1
 
-- [ ] T016 [P] [US1] Implement `classic4` BoardLayout + PieceSet + win lines in `src/quarto/modules/classic4.ts` (cite module-owned `traitCount`/`pieceCount`/`cellCount` in `data-model.md` PieceSet + BoardLayout)
-- [ ] T017 [US1] Implement give/place/declare/draw transitions in `src/quarto/engine.ts` + `src/quarto/lines.ts` (FR-001–005, FR-020)
-- [ ] T018 [US1] Persist/load `MatchSession` snapshots via Supabase in `src/telegram/sessions.ts` (cite `data-model.md` `MatchSession.board`, `pool`, `pieceInHand`, `phase`, `status`)
-- [ ] T019 [US1] Card create/format/edit for `surface` `group|dm` in `src/telegram/cards.ts` (cite `data-model.md` `ChallengeCard.surface`, `chatId`, `messageId`)
-- [ ] T020 [US1] API: `POST /cards`, `GET /cards/:cardId`, `POST /cards/:cardId/slots`, `POST /sessions/:sessionId/join`, `POST /sessions/:sessionId/intent` per `contracts/openapi.yaml` in `src/telegram/api/`
-- [ ] T021 [US1] Mini App board UI: pool, hand, place, declare in `src/components/` + `app/`
-- [ ] T022 [US1] Bot commands to create card in group vs DM; always edit card status on join/end in `src/telegram/bot.ts` + `src/telegram/cards.ts`
-- [ ] T023 [US1] Notifications `opponent_joined` / `match_ended` + card edit per `contracts/bot-notifications.md` in `src/telegram/`
+- [x] T016 [P] [US1] Implement `classic4` BoardLayout + PieceSet + win lines in `src/quarto/modules/classic4.ts` (cite module-owned `traitCount`/`pieceCount`/`cellCount` in `data-model.md` PieceSet + BoardLayout)
+- [x] T017 [US1] Implement give/place/declare/draw transitions in `src/quarto/engine.ts` + `src/quarto/lines.ts` (FR-001–005, FR-020)
+- [x] T018 [US1] Persist/load `MatchSession` snapshots via Supabase in `src/telegram/sessions.ts` (cite `data-model.md` `MatchSession.board`, `pool`, `pieceInHand`, `phase`, `status`)
+- [x] T019 [US1] Card create/format/edit for `surface` `group|dm` in `src/telegram/cards.ts` (cite `data-model.md` `ChallengeCard.surface`, `chatId`, `messageId`)
+- [x] T020 [US1] API: `POST /cards`, `GET /cards/:cardId`, `POST /cards/:cardId/slots`, `POST /sessions/:sessionId/join`, `POST /sessions/:sessionId/intent` per `contracts/openapi.yaml` in `src/telegram/api/`
+- [x] T021 [US1] Mini App board UI: pool, hand, place, declare in `src/components/` + `app/`
+- [x] T022 [US1] Bot commands to create card in group vs DM; always edit card status on join/end in `src/telegram/bot.ts` + `src/telegram/cards.ts`
+- [x] T023 [US1] Notifications `opponent_joined` / `match_ended` + card edit per `contracts/bot-notifications.md` in `src/telegram/`
 
 **Checkpoint**: Classic 1v1 MVP playable end-to-end
 

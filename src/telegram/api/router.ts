@@ -1,7 +1,22 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import {
+  achievementsStub,
+  getCardHandler,
+  getSessionHandler,
+  intentHandler,
+  joinHandler,
+  postCardHandler,
+  postSlotHandler,
+  rematchStub,
+  settingsStub,
+} from "./handlers";
 import { rateLimit } from "./rateLimit";
 
-type Handler = (req: IncomingMessage, res: ServerResponse, params: Record<string, string>) => Promise<void>;
+type Handler = (
+  req: IncomingMessage,
+  res: ServerResponse,
+  params: Record<string, string>,
+) => Promise<void>;
 
 const routes: { method: string; pattern: RegExp; keys: string[]; handler: Handler }[] = [];
 
@@ -18,23 +33,18 @@ function add(method: string, path: string, handler: Handler) {
   routes.push({ method, pattern, keys, handler });
 }
 
-async function notImplemented(_req: IncomingMessage, res: ServerResponse) {
-  res.statusCode = 501;
-  res.setHeader("content-type", "application/json");
-  res.end(JSON.stringify({ error: "not_implemented" }));
-}
-
-/** Route stubs matching contracts/openapi.yaml — filled in US phases. */
+/** Routes matching contracts/openapi.yaml */
 export function registerOpenApiStubs() {
-  add("GET", "/api/v1/cards/:cardId", notImplemented);
-  add("POST", "/api/v1/cards", notImplemented);
-  add("POST", "/api/v1/cards/:cardId/slots", notImplemented);
-  add("POST", "/api/v1/sessions/:sessionId/join", notImplemented);
-  add("POST", "/api/v1/sessions/:sessionId/settings", notImplemented);
-  add("POST", "/api/v1/sessions/:sessionId/intent", notImplemented);
-  add("POST", "/api/v1/sessions/:sessionId/rematch", notImplemented);
-  add("GET", "/api/v1/me/achievements", notImplemented);
-  add("POST", "/api/v1/me/achievements/pin", notImplemented);
+  add("GET", "/api/v1/cards/:cardId", getCardHandler);
+  add("POST", "/api/v1/cards", postCardHandler);
+  add("POST", "/api/v1/cards/:cardId/slots", postSlotHandler);
+  add("GET", "/api/v1/sessions/:sessionId", getSessionHandler);
+  add("POST", "/api/v1/sessions/:sessionId/join", joinHandler);
+  add("POST", "/api/v1/sessions/:sessionId/settings", settingsStub);
+  add("POST", "/api/v1/sessions/:sessionId/intent", intentHandler);
+  add("POST", "/api/v1/sessions/:sessionId/rematch", rematchStub);
+  add("GET", "/api/v1/me/achievements", achievementsStub);
+  add("POST", "/api/v1/me/achievements/pin", achievementsStub);
 }
 
 export async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
