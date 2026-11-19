@@ -7,7 +7,12 @@ export const en = {
   timeoutAvailable: "You can claim a timeout win",
   helpGivePlace: "Give a piece, place it, declare Quarto on a line of 4.",
   startBlurb:
-    "Quarto — classic 1v1.\n/new — challenge card in this chat\nOpen Mini App from the card link to play.",
+    "Quarto — classic 1v1.\n/new — challenge card in this chat\nOr tap “Drop in a chat” to share via inline mode.\nOpen Mini App from the card to play.",
+  dropInChat: "Drop in a chat",
+  inlineTitle: "Quarto challenge card",
+  inlineDescription: "Share a 1v1 card — opponent opens Mini App from the message",
+  inlinePlaceholder: "Quarto · preparing challenge card…",
+  openMiniApp: "Open Mini App",
   surface: "Surface",
   waiting: "waiting",
   joinSeat1: "Join as seat 1",

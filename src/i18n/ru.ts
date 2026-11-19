@@ -7,7 +7,12 @@ export const ru = {
   timeoutAvailable: "Можно забрать победу по таймауту",
   helpGivePlace: "Отдайте фигуру, поставьте её, объявите Кварто на линии из 4.",
   startBlurb:
-    "Кварто — классика 1v1.\n/new — карточка вызова в этом чате\nОткройте Mini App по ссылке с карточки.",
+    "Кварто — классика 1v1.\n/new — карточка вызова в этом чате\nИли «В другой чат» — шаринг через inline.\nОткройте Mini App с карточки.",
+  dropInChat: "В другой чат",
+  inlineTitle: "Карточка Кварто",
+  inlineDescription: "Поделиться карточкой 1v1 — соперник откроет Mini App из сообщения",
+  inlinePlaceholder: "Кварто · готовим карточку…",
+  openMiniApp: "Открыть Mini App",
   surface: "Поверхность",
   waiting: "ожидание",
   joinSeat1: "Сесть как seat 1",

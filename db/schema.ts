@@ -20,9 +20,11 @@ export const players = pgTable("players", {
 export const cards = pgTable("cards", {
   cardId: varchar("card_id", { length: 64 }).primaryKey(),
   ownerTelegramUserId: varchar("owner_telegram_user_id", { length: 32 }).notNull(),
-  surface: varchar("surface", { length: 8 }).notNull(), // group | dm
+  surface: varchar("surface", { length: 8 }).notNull(), // group | dm | inline
   chatId: varchar("chat_id", { length: 64 }),
   messageId: integer("message_id"),
+  /** Set when the card was dropped via inline mode (editable via inline_message_id). */
+  inlineMessageId: varchar("inline_message_id", { length: 128 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

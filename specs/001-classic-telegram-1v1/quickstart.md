@@ -22,7 +22,7 @@ npm run dev            # or build+export Mini App to the configured URL
 
 ## Scenario A — Classic win (P1)
 
-1. User A: `/start` or create-card command → challenge card appears.
+1. User A: `/start` or `/new`, or `@tgquarto_bot` inline → challenge card appears.
 2. User A opens Mini App, creates/waits on slot (Miss OFF, Pie OFF).
 3. User B opens same card → joins (settings lock).
 4. Play give → place → … until a legal Quarto; A or B declares with four cells.

@@ -21,8 +21,8 @@
 
 ## R4 — Bot update delivery
 
-- **Decision**: Long polling for local/dev; **webhook on Cloud Run** in production (same host pattern as Sudoku: container + `WEBHOOK_URL` → `POST /telegram`). Mini App API shares that Node HTTP server.
-- **Rationale**: Stable public HTTPS without ephemeral tunnels; Telegraf standard path.
+- **Decision**: Long polling for local/dev; **webhook on Cloud Run** in production (same host pattern as Sudoku: container + `WEBHOOK_URL` → `POST /telegram`). Mini App API shares that Node HTTP server. Allowed updates include `message`, `callback_query`, `inline_query`, `chosen_inline_result`.
+- **Rationale**: Stable public HTTPS without ephemeral tunnels; Telegraf standard path; challenge cards can be dropped into any chat via inline mode (`@tgquarto_bot`).
 - **Alternatives considered**: Polling-only in production — brittle; ad-hoc tunnels (trycloudflare / Tailscale Funnel) — not used; they are ephemeral and were never part of the plan.
 
 ## R5 — Mini App hosting

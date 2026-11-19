@@ -42,6 +42,14 @@ export async function setCardMessage(cardId: string, chatId: string, messageId: 
     .where(eq(cards.cardId, cardId));
 }
 
+export async function setCardInlineMessage(cardId: string, inlineMessageId: string) {
+  const db = getDb();
+  await db
+    .update(cards)
+    .set({ inlineMessageId, surface: "inline" })
+    .where(eq(cards.cardId, cardId));
+}
+
 export async function getCard(cardId: string) {
   const db = getDb();
   const rows = await db.select().from(cards).where(eq(cards.cardId, cardId)).limit(1);
