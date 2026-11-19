@@ -69,6 +69,12 @@ npm run test           # engine + quickstart_gate (A–G stand-ins) + contract
 npm run test:contract  # initData reject; seat isolation; slot cap; settings; rematch; pins
 ```
 
-Live Telegram two-account smoke for A–G remains manual after deploy (`TELEGRAM_WEBAPP_URL`, Docker bot webhook or polling).
+Live Telegram two-account smoke for A–G remains manual after deploy.
+
+## Production host (Sudoku pattern)
+
+- **Bot + API**: Cloud Run service (`WEBHOOK_URL=https://<service>/telegram`, secrets for `BOT_TOKEN` + `DATABASE_URL`).
+- **Mini App**: GitHub Pages; build env `NEXT_PUBLIC_API_BASE` = Cloud Run URL; `TELEGRAM_WEBAPP_URL` / menu button = Pages URL.
+- Do **not** use ephemeral tunnels (trycloudflare, Funnel, etc.) for prod webhook or API base.
 
 Engine tests MUST run with Telegram modules mocked or absent.

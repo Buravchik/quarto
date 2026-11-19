@@ -18,7 +18,7 @@ Ship classic Quarto (4×4 give-and-place) as a Telegram challenge-card + Mini Ap
 
 **Testing**: Vitest (unit: `src/quarto` state machine; contract: HTTP handlers with mocked initData)  
 
-**Target Platform**: Telegram Bot API + Telegram Mini App; bot process on Linux container; Mini App static host  
+**Target Platform**: Telegram Bot API + Telegram Mini App; bot/API on **Cloud Run**; Mini App on **GitHub Pages** (Sudoku host pattern; no tunnels)  
 
 **Project Type**: Telegram game — bot/API service + static Mini App frontend  
 

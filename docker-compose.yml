@@ -1,3 +1,4 @@
+# Local-only bot/API. Production is Cloud Run + GitHub Pages (Sudoku pattern) — no tunnels.
 services:
   bot:
     build: .
@@ -8,4 +9,4 @@ services:
       - .env
     environment:
       PORT: "8080"
-      # Prefer long polling locally; set WEBHOOK_URL when behind a stable public HTTPS
+      # Omit WEBHOOK_URL in .env for local long polling; use a non-prod BOT_TOKEN.
