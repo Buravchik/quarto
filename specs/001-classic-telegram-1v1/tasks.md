@@ -38,7 +38,7 @@ description: "Task list for Quarto classic Telegram 1v1"
 
 - [ ] T006 Create Supabase/Postgres schema + migrations for `PlayerIdentity`, `ChallengeCard`, `MatchSession` (cite `data-model.md`: `ChallengeCard.surface` enum `group|dm`; `ChallengeCard.slots` max 8; `MatchSession.modules`; `MatchSession.missMode` / `pieRule` / `settingsLocked`; opaque `board` occupancy) under `src/telegram/` or `db/migrations/`
 - [ ] T007 [P] Implement Telegram `initData` HMAC validation in `src/telegram/initData.ts`
-- [ ] T008 [P] Implement HTTP router skeleton `/api/v1` + rate-limit middleware in `src/telegram/api/`
+- [ ] T008 [P] Scaffold `/api/v1` router + rate-limit middleware in `src/telegram/api/` with route stubs matching `contracts/openapi.yaml` (all paths/methods; handlers may be TODO until US phases)
 - [ ] T009 Define `GameModule` registry interface (traits, PieceSet, BoardLayout, win masks, pick model) and register stub `classic4` in `src/quarto/modules/`
 - [ ] T010 Implement pure classic engine shell (phases, intents types, no Telegram) in `src/quarto/engine.ts`, `src/quarto/types.ts`
 - [ ] T011 [P] RU/EN string tables scaffold in `src/i18n/`
