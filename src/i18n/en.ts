@@ -33,4 +33,12 @@ export const en = {
   piePass: "Pie: pass",
   openFromCard: "Open from a challenge card link with a sessionId.",
   waitingInitData: "Waiting for Telegram WebApp initData…",
+  homeTagline: "Classic 1v1 — give a piece, place it, declare Quarto.",
+  startMatch: "Start a match",
+  homeHint: "Creates your challenge slot. Share the bot card or this session link with a friend.",
+  creating: "Creating…",
+  waitingOpponent: "Waiting for opponent…",
+  shareSession: "Copy session link",
+  backHome: "New match",
+  linkCopied: "Link copied",
 } as const;

@@ -33,4 +33,12 @@ export const ru = {
   piePass: "Pie: пас",
   openFromCard: "Откройте по ссылке карточки с sessionId.",
   waitingInitData: "Ждём Telegram WebApp initData…",
+  homeTagline: "Классика 1v1 — отдай фигуру, поставь, объяви Кварто.",
+  startMatch: "Начать партию",
+  homeHint: "Создаёт ваш слот. Поделитесь карточкой бота или ссылкой сессии с другом.",
+  creating: "Создаём…",
+  waitingOpponent: "Ждём соперника…",
+  shareSession: "Скопировать ссылку сессии",
+  backHome: "Новая партия",
+  linkCopied: "Ссылка скопирована",
 } as const;
