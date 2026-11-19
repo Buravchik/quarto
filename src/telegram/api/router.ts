@@ -11,6 +11,7 @@ import {
   rematchHandler,
   settingsHandler,
 } from "./handlers";
+import { applyCors } from "../http";
 import { rateLimit, rateLimitMutating } from "./rateLimit";
 
 type Handler = (
@@ -53,8 +54,15 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse): Prom
   const path = url.pathname;
   if (!path.startsWith("/api/v1")) return false;
 
-  const ip = req.socket.remoteAddress ?? "unknown";
+  applyCors(req, res);
   const method = (req.method ?? "GET").toUpperCase();
+  if (method === "OPTIONS") {
+    res.statusCode = 204;
+    res.end();
+    return true;
+  }
+
+  const ip = req.socket.remoteAddress ?? "unknown";
   const limited =
     method === "GET" || method === "HEAD" ? rateLimit(ip) : rateLimitMutating(ip);
   if (!limited) {
