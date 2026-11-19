@@ -1,19 +1,19 @@
 <!--
 Sync Impact Report
 - Version change: (empty template) → 1.0.0
-- Modified principles: placeholders → Quatro I–VIII (see draft)
+- Modified principles: placeholders → Quarto I–VIII (see draft)
 - Added sections: Security & integrity; Delivery
 - Removed sections: none
 - Deferred: product language (RU/EN); Mini App required at MVP — specify/clarify if needed
 - Remove this report comment before treating the file as settled governance (optional cleanup)
 -->
 
-# Quatro Constitution
+# Quarto Constitution
 
 ## Core Principles
 
 ### I. Telegram game
-Quatro is a game that runs on Telegram.
+Quarto is a game that runs on Telegram.
 
 ### II. Telegram platform
 Ship through Telegram's official bot and/or Mini App APIs.
