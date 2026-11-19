@@ -23,7 +23,7 @@ description: "Task list for Quarto classic Telegram 1v1"
 **Purpose**: Scaffold repo per plan.md
 
 - [ ] T001 Create directory layout `app/`, `public/`, `src/quarto/`, `src/quarto/modules/`, `src/telegram/`, `src/telegram/api/`, `src/components/`, `src/i18n/`, `tests/unit/quarto/`, `tests/contract/api/` per plan.md
-- [ ] T002 Initialize TypeScript Node 22 project with Next.js (static export), React, Telegraf, Zod, `pg` or Drizzle, Vitest in `package.json`
+- [ ] T002 Initialize TypeScript Node 22 project with Next.js (static export), React, Telegraf, Zod, Drizzle ORM + `pg` against Supabase `DATABASE_URL`, Vitest in `package.json`
 - [ ] T003 [P] Add ESLint/Prettier (or repo-standard lint) config at repo root
 - [ ] T004 [P] Add `.env.example` with `BOT_TOKEN`, `TELEGRAM_WEBAPP_URL`, `DATABASE_URL` (Supabase) and gitignore secrets
 - [ ] T005 [P] Add `Dockerfile` for bot/API (Node 22) and GitHub Pages/static Mini App build scripts in `package.json`

@@ -12,7 +12,7 @@ Ship classic Quarto (4×4 give-and-place) as a Telegram challenge-card + Mini Ap
 
 **Language/Version**: TypeScript 5.x on Node.js 22  
 
-**Primary Dependencies**: Next.js (static Mini App export), React, Telegraf (bot), Zod (request validation), `pg` (or Drizzle) against Supabase Postgres  
+**Primary Dependencies**: Next.js (static Mini App export), React, Telegraf (bot), Zod (request validation), Drizzle ORM + `pg` against Supabase Postgres  
 
 **Storage**: Supabase Free — hosted Postgres for cards/sessions/achievements/timers (connection via `DATABASE_URL`; secrets in env only)  
 

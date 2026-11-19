@@ -14,7 +14,7 @@
 
 ## R3 — Persistence
 
-- **Decision**: **Supabase Free** (hosted Postgres). Bot/API uses SQL over `DATABASE_URL` (`pg` or Drizzle). Schema is plain Postgres from day one.
+- **Decision**: **Supabase Free** (hosted Postgres). Bot/API uses Drizzle ORM + `pg` over `DATABASE_URL`. Schema is plain Postgres from day one.
 - **Rationale**: Concurrent 1v1 sessions, claimable timeouts, and achievements need a real shared DB; free hosted Postgres avoids local SQLite files and multi-instance pain. Matches product expectation better than a single-file MVP.
 - **Alternatives considered**: SQLite (single-container) — rejected (weak for concurrent writes / ops credibility); JSON files (Sudoku default) — weaker still; Neon/other Postgres hosts — acceptable equivalents if Supabase Free limits bite; Firestore — heavier ops for v1.
 - **Notes**: Stay on Free tier for v1; watch pause-after-inactivity and connection limits; keep PII minimal (Telegram user id + name snapshot). Optional Supabase Realtime later — not required for v1 (bot push + Mini App refresh).
