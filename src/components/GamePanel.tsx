@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { t } from "../i18n";
 import { Board } from "./Board";
 import { Pool } from "./Pool";
 import { Settings } from "./Settings";
@@ -26,14 +27,27 @@ type Props = {
   apiBase: string;
   sessionId: string;
   initData: string;
+  onLeave?: () => void;
 };
 
-export function GamePanel({ apiBase, sessionId, initData }: Props) {
+function readTelegramUserId(): string {
+  if (typeof window === "undefined") return "";
+  const id = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  return id != null ? String(id) : "";
+}
+
+export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
+  const copy = useMemo(
+    () => t(typeof window !== "undefined" ? window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code : undefined),
+    [],
+  );
+  const me = useMemo(() => readTelegramUserId(), []);
   const [session, setSession] = useState<Snapshot | null>(null);
   const [selectedPiece, setSelectedPiece] = useState<string | null>(null);
   const [declareCells, setDeclareCells] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const refresh = useCallback(async () => {
     const url = `${apiBase}/api/v1/sessions/${sessionId}?initData=${encodeURIComponent(initData)}`;
@@ -179,9 +193,38 @@ export function GamePanel({ apiBase, sessionId, initData }: Props) {
       />
 
       {session.status === "waiting" ? (
-        <button type="button" disabled={busy} onClick={() => void join()}>
-          Join as seat 1
-        </button>
+        <div style={{ display: "grid", gap: "0.6rem" }}>
+          {session.seat0?.telegramUserId === me ? (
+            <>
+              <p style={{ margin: 0, opacity: 0.9 }}>{copy.waitingOpponent}</p>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={async () => {
+                  const link = `${window.location.origin}${window.location.pathname}?sessionId=${sessionId}`;
+                  try {
+                    await navigator.clipboard.writeText(link);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  } catch {
+                    setError(link);
+                  }
+                }}
+              >
+                {copied ? copy.linkCopied : copy.shareSession}
+              </button>
+            </>
+          ) : (
+            <button type="button" disabled={busy} onClick={() => void join()}>
+              {copy.joinSeat1}
+            </button>
+          )}
+          {onLeave ? (
+            <button type="button" disabled={busy} onClick={onLeave}>
+              {copy.backHome}
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       {session.phase === "pie_choice" ? (

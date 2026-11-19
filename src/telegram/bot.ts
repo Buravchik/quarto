@@ -1,8 +1,15 @@
+import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import { Markup, Telegraf } from "telegraf";
 import { t } from "../i18n";
 import { handleApi, registerOpenApiStubs } from "./api/router";
-import { cardView, createCard, formatCardMessage, setCardMessage } from "./cards";
+import {
+  cardView,
+  createCard,
+  formatCardMessage,
+  setCardInlineMessage,
+  setCardMessage,
+} from "./cards";
 import { loadEnvFile } from "./http";
 import { setNotifyTransport } from "./notify";
 
@@ -15,10 +22,22 @@ const webapp = process.env.TELEGRAM_WEBAPP_URL;
 
 const bot = token ? new Telegraf(token) : null;
 
+function playKeyboard(sessionId: string, langCode?: string) {
+  const copy = t(langCode);
+  if (!webapp) return undefined;
+  return Markup.inlineKeyboard([
+    [Markup.button.url(copy.openMiniApp, `${webapp}?sessionId=${sessionId}`)],
+    [Markup.button.switchToChat(copy.dropInChat, "")],
+  ]);
+}
+
 if (bot) {
   setNotifyTransport({
     editMessageText: async (chatId, messageId, text) => {
       await bot.telegram.editMessageText(chatId, messageId, undefined, text);
+    },
+    editInlineMessageText: async (inlineMessageId, text) => {
+      await bot.telegram.editMessageText(undefined, undefined, inlineMessageId, text);
     },
     sendMessage: async (chatId, text) => {
       await bot.telegram.sendMessage(chatId, text);
@@ -27,7 +46,10 @@ if (bot) {
 
   bot.start(async (ctx) => {
     const copy = t(ctx.from?.language_code);
-    await ctx.reply(copy.startBlurb);
+    await ctx.reply(
+      copy.startBlurb,
+      Markup.inlineKeyboard([[Markup.button.switchToChat(copy.dropInChat, "")]]),
+    );
   });
 
   bot.command("new", async (ctx) => {
@@ -41,25 +63,77 @@ if (bot) {
     });
     const view = await cardView(created.cardId);
     const text = view ? formatCardMessage(view) : `Card ${created.cardId}`;
-    const keyboard =
-      webapp != null
-        ? Markup.inlineKeyboard([
-            Markup.button.url("Open Mini App", `${webapp}?sessionId=${created.sessionId}`),
-          ])
-        : undefined;
-    const msg = await ctx.reply(text, keyboard);
+    const msg = await ctx.reply(text, playKeyboard(created.sessionId, ctx.from.language_code));
     await setCardMessage(created.cardId, String(chat.id), msg.message_id);
   });
 
   bot.command("help", async (ctx) => {
     await ctx.reply(t(ctx.from?.language_code).helpGivePlace);
   });
+
+  // Inline mode: @tgquarto_bot in any chat → drop a challenge card
+  bot.on("inline_query", async (ctx) => {
+    const copy = t(ctx.from.language_code);
+    await ctx.answerInlineQuery(
+      [
+        {
+          type: "article",
+          id: randomUUID(),
+          title: copy.inlineTitle,
+          description: copy.inlineDescription,
+          input_message_content: {
+            message_text: copy.inlinePlaceholder,
+          },
+          // reply_markup required so Telegram gives us inline_message_id on choose
+          reply_markup: {
+            inline_keyboard: [[{ text: copy.openMiniApp, url: webapp ?? "https://t.me" }]],
+          },
+        },
+      ],
+      { cache_time: 0, is_personal: true },
+    );
+  });
+
+  bot.on("chosen_inline_result", async (ctx) => {
+    const inlineMessageId = ctx.chosenInlineResult.inline_message_id;
+    if (!inlineMessageId || !ctx.from) return;
+    const copy = t(ctx.from.language_code);
+    try {
+      const created = await createCard({
+        ownerTelegramUserId: String(ctx.from.id),
+        surface: "inline",
+      });
+      await setCardInlineMessage(created.cardId, inlineMessageId);
+      const view = await cardView(created.cardId);
+      const text = view ? formatCardMessage(view) : `Card ${created.cardId}`;
+      const extra =
+        webapp != null
+          ? {
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: copy.openMiniApp,
+                      url: `${webapp}?sessionId=${created.sessionId}`,
+                    },
+                  ],
+                ],
+              },
+            }
+          : undefined;
+      await bot.telegram.editMessageText(undefined, undefined, inlineMessageId, text, extra);
+    } catch (err) {
+      console.error("chosen_inline_result failed", err);
+    }
+  });
 }
 
 const server = createServer(async (req, res) => {
   if (await handleApi(req, res)) return;
 
-  if (req.method === "POST" && req.url === "/telegram" && bot) {
+  const path = new URL(req.url ?? "/", "http://localhost").pathname;
+
+  if (req.method === "POST" && path === "/telegram" && bot) {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk as Buffer);
     const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -69,8 +143,10 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  if (req.url === "/healthz") {
+  // Prefer /health — /healthz is sometimes intercepted by Google Frontend on Cloud Run
+  if (path === "/health" || path === "/healthz" || path === "/") {
     res.statusCode = 200;
+    res.setHeader("content-type", "text/plain");
     res.end("ok");
     return;
   }
@@ -86,8 +162,15 @@ server.listen(port, () => {
 const webhook = process.env.WEBHOOK_URL;
 if (bot && !webhook) {
   bot
-    .launch()
-    .then(() => console.log("Telegraf long polling"))
+    .launch({
+      allowedUpdates: [
+        "message",
+        "callback_query",
+        "inline_query",
+        "chosen_inline_result",
+      ],
+    })
+    .then(() => console.log("Telegraf long polling (incl. inline)"))
     .catch((err) => console.error("bot.launch failed", err));
   process.once("SIGINT", () => bot.stop("SIGINT"));
   process.once("SIGTERM", () => bot.stop("SIGTERM"));

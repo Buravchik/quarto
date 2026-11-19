@@ -8,6 +8,7 @@ import { getSession, type Seat } from "./sessions";
 
 export type NotifyTransport = {
   editMessageText: (chatId: string, messageId: number, text: string) => Promise<void>;
+  editInlineMessageText: (inlineMessageId: string, text: string) => Promise<void>;
   sendMessage: (chatId: string, text: string) => Promise<void>;
 };
 
@@ -22,12 +23,16 @@ async function refreshCardMessage(cardId: string) {
   const db = getDb();
   const rows = await db.select().from(cards).where(eq(cards.cardId, cardId)).limit(1);
   const card = rows[0];
-  if (!card?.chatId || card.messageId == null) return;
+  if (!card) return;
   const view = await cardView(cardId);
   if (!view) return;
   const text = formatCardMessage(view);
   try {
-    await transport.editMessageText(card.chatId, card.messageId, text);
+    if (card.inlineMessageId) {
+      await transport.editInlineMessageText(card.inlineMessageId, text);
+    } else if (card.chatId && card.messageId != null) {
+      await transport.editMessageText(card.chatId, card.messageId, text);
+    }
   } catch (err) {
     console.warn("card edit failed", err);
   }
@@ -76,7 +81,6 @@ export async function notifyTurnChanged(sessionId: string) {
   const waiting = turn === 0 ? seat1 : turn === 1 ? seat0 : null;
   const copy = t("en");
   await dm(target?.telegramUserId, copy.yourTurn);
-  // If already past 24h (replay/notify), ping waiting seat
   if (timeoutReady(row.turnNotifiedAt ? row.turnNotifiedAt.toISOString() : null).ready) {
     await dm(waiting?.telegramUserId, copy.timeoutAvailable);
   }

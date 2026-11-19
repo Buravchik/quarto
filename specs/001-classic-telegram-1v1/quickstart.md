@@ -22,7 +22,7 @@ npm run dev            # or build+export Mini App to the configured URL
 
 ## Scenario A — Classic win (P1)
 
-1. User A: `/start` or create-card command → challenge card appears.
+1. User A: `/start` or `/new`, or `@tgquarto_bot` inline → challenge card appears.
 2. User A opens Mini App, creates/waits on slot (Miss OFF, Pie OFF).
 3. User B opens same card → joins (settings lock).
 4. Play give → place → … until a legal Quarto; A or B declares with four cells.
@@ -69,6 +69,12 @@ npm run test           # engine + quickstart_gate (A–G stand-ins) + contract
 npm run test:contract  # initData reject; seat isolation; slot cap; settings; rematch; pins
 ```
 
-Live Telegram two-account smoke for A–G remains manual after deploy (`TELEGRAM_WEBAPP_URL`, Docker bot webhook or polling).
+Live Telegram two-account smoke for A–G remains manual after deploy.
+
+## Production host (Sudoku pattern)
+
+- **Bot + API**: Cloud Run service (`WEBHOOK_URL=https://<service>/telegram`, secrets for `BOT_TOKEN` + `DATABASE_URL`).
+- **Mini App**: GitHub Pages; build env `NEXT_PUBLIC_API_BASE` = Cloud Run URL; `TELEGRAM_WEBAPP_URL` / menu button = Pages URL.
+- Do **not** use ephemeral tunnels (trycloudflare, Funnel, etc.) for prod webhook or API base.
 
 Engine tests MUST run with Telegram modules mocked or absent.

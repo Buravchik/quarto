@@ -21,13 +21,13 @@
 
 ## R4 — Bot update delivery
 
-- **Decision**: Long polling for local/dev; webhook mode for production Docker behind HTTPS (same pattern as Sudoku `RECORDS_BACKEND`/webhook fork).
-- **Rationale**: Standard Telegraf deploy path; Mini App API shares the same Node HTTP server.
-- **Alternatives considered**: Polling-only in production — brittle behind some hosts.
+- **Decision**: Long polling for local/dev; **webhook on Cloud Run** in production (same host pattern as Sudoku: container + `WEBHOOK_URL` → `POST /telegram`). Mini App API shares that Node HTTP server. Allowed updates include `message`, `callback_query`, `inline_query`, `chosen_inline_result`.
+- **Rationale**: Stable public HTTPS without ephemeral tunnels; Telegraf standard path; challenge cards can be dropped into any chat via inline mode (`@tgquarto_bot`).
+- **Alternatives considered**: Polling-only in production — brittle; ad-hoc tunnels (trycloudflare / Tailscale Funnel) — not used; they are ephemeral and were never part of the plan.
 
 ## R5 — Mini App hosting
 
-- **Decision**: Static export of Next Mini App to Pages/CDN; `TELEGRAM_WEBAPP_URL` points bot buttons at that origin with version query.
+- **Decision**: Static export of Next Mini App to **GitHub Pages**; `TELEGRAM_WEBAPP_URL` / menu button point at that origin; `NEXT_PUBLIC_API_BASE` points at the Cloud Run service URL.
 - **Rationale**: Same as Sudoku; cheap HTTPS for Telegram WebApp requirement.
 - **Alternatives considered**: Serving Mini App from the bot origin — couples deploys; acceptable fallback if Pages unavailable.
 
