@@ -6,14 +6,14 @@ Prove the feature without implementing every UI polish item. Use two Telegram te
 
 - Node 22+, npm/pnpm
 - Bot token in env (`BOT_TOKEN`); Mini App URL HTTPS (`TELEGRAM_WEBAPP_URL`)
-- SQLite path writable (`DATABASE_PATH`)
+- Supabase Free project with Postgres `DATABASE_URL` (or pooler URL)
 - Spec artifacts: [spec.md](./spec.md), [data-model.md](./data-model.md), [contracts/miniapp-api.md](./contracts/miniapp-api.md)
 
 ## Setup (after implement)
 
 ```bash
 cd <repo-root>
-cp .env.example .env   # fill BOT_TOKEN, TELEGRAM_WEBAPP_URL, DATABASE_PATH
+cp .env.example .env   # fill BOT_TOKEN, TELEGRAM_WEBAPP_URL, DATABASE_URL (Supabase)
 npm install
 npm run test           # unit: src/quarto must pass without Telegram
 npm run bot:start      # API + Telegraf

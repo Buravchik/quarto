@@ -14,9 +14,10 @@
 
 ## R3 — Persistence
 
-- **Decision**: Start with **SQLite** (single bot instance / one Docker host). Schema ready to move to Postgres when scaling out.
-- **Rationale**: Durable sessions/achievements/timers without external managed DB for MVP; file-backed SQLite fits one-container deploy.
-- **Alternatives considered**: JSON files (Sudoku default) — weaker for concurrent writes; Firestore — heavier ops for v1; Postgres-only — fine later, more setup now.
+- **Decision**: **Supabase Free** (hosted Postgres). Bot/API uses SQL over `DATABASE_URL` (`pg` or Drizzle). Schema is plain Postgres from day one.
+- **Rationale**: Concurrent 1v1 sessions, claimable timeouts, and achievements need a real shared DB; free hosted Postgres avoids local SQLite files and multi-instance pain. Matches product expectation better than a single-file MVP.
+- **Alternatives considered**: SQLite (single-container) — rejected (weak for concurrent writes / ops credibility); JSON files (Sudoku default) — weaker still; Neon/other Postgres hosts — acceptable equivalents if Supabase Free limits bite; Firestore — heavier ops for v1.
+- **Notes**: Stay on Free tier for v1; watch pause-after-inactivity and connection limits; keep PII minimal (Telegram user id + name snapshot). Optional Supabase Realtime later — not required for v1 (bot push + Mini App refresh).
 
 ## R4 — Bot update delivery
 
