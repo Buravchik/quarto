@@ -51,9 +51,9 @@
 
 ## R9 — Mode modules hook
 
-- **Decision**: Engine exposes a **module registry** (`GameModule`: `traitCount` / trait encoding, `pieceCount` + piece ids, `cellCount` / board geometry, win lines/masks, pick model, optional intent extensions). Modules register at construction; session lists active module ids (settings, locked on join). Piece ids in DB are opaque; only the module defines how many traits/pieces/cells exist. v1 ships/registers only `classic4` (4 traits → 16 pieces, 4×4). Later mode packs plug in without rewriting Telegram shell. Conflict groups (max 1 per group) enforced when activating modules (later specs / catalog).
-- **Rationale**: Spec FR-019 — capability to attach rule modules now; catalog content later. Hard-coding 16/4 in the data model would block Five-Trait / larger boards.
-- **Alternatives considered**: Hard-code classic forever — blocks future specs.
+- **Decision**: Engine exposes a **module registry** (`GameModule`: traits/pieces, **BoardLayout** (cell ids, shape, win masks), pick model, optional intent extensions). Session stores opaque cell→piece occupancy only. v1 registers only `classic4` (4×4, 16 pieces). Later packs may replace the board entirely (size/shape/win sets) without rewriting Telegram shell. Conflict groups enforced when activating modules (later specs / catalog).
+- **Rationale**: Spec FR-019; board is rule-owned, same as pieces.
+- **Alternatives considered**: Hard-code 4×4 forever — blocks catalog layouts.
 
 ## R10 — i18n
 

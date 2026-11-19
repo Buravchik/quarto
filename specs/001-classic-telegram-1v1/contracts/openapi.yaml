@@ -525,15 +525,26 @@ components:
         openerSeat: { type: integer, enum: [0, 1], nullable: true }
         turnSeat: { type: integer, enum: [0, 1], nullable: true }
         board:
-          type: array
-          description: Length = cellCount from active modules (classic4 = 16)
-          items:
-            type: string
-            nullable: true
+          description: |
+            Occupancy from active modules' BoardLayout.
+            v1 classic4 may be a length-16 array; later modules may use
+            an object map of cellId → pieceId|null for non-grid boards.
+          oneOf:
+            - type: array
+              items:
+                type: string
+                nullable: true
+            - type: object
+              additionalProperties:
+                type: string
+                nullable: true
         pool:
           type: array
           description: Remaining piece ids; universe size from active modules
           items: { type: string }
+        boardLayoutId:
+          type: string
+          description: Layout id from active modules (classic4 = "grid4x4")
         traitCount:
           type: integer
           description: From active modules (classic4 = 4)

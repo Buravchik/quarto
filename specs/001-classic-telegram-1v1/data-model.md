@@ -43,7 +43,7 @@ Same slot/session rules on both surfaces; only message placement differs.
 | `openerSeat` | 0 \| 1 after random assign (may swap after pie) |
 | `turnSeat` | whose action is required |
 | `phase` | engine phase (see transitions) |
-| `board` | `cellCount` cells: `null` or piece id (`cellCount` from active modules) |
+| `board` | Map/list of cell id → piece id \| null; **layout from active modules** (not fixed 4×4) |
 | `pool` | remaining piece ids (universe from active modules) |
 | `pieceInHand` | piece id or null |
 | `voidedSets` | list of set masks dead under Void |
@@ -52,17 +52,22 @@ Same slot/session rules on both surfaces; only message placement differs.
 | `rematchOfSessionId` | optional link |
 | `createdAt` / `updatedAt` | |
 
-### PieceSet (from active `GameModule`, not a fixed table)
+### PieceSet + BoardLayout (from active `GameModule`)
 
-Modules define the piece universe for a session. Classic `classic4`:
+Modules own both pieces and board. Classic `classic4`:
 
-- `traitCount` = 4 binary traits (color, height, shape, top)
-- `pieceCount` = \(2^{\text{traitCount}}\) = 16
-- `cellCount` = 16 (4×4)
+- `traitCount` = 4 binary traits → `pieceCount` = 16
+- Board: 4×4 grid, `cellCount` = 16, win lines = rows/cols/diags
 
-Other packs may change trait arity, encoding, piece count, and board size (see catalog / later specs). Session stores only **piece ids** opaque to Telegram; engine + modules interpret traits.
+Other packs may change (catalog / later specs):
 
-v1 registers only `classic4`; schema and API must not assume “always 16×4” beyond that module’s defaults.
+- trait arity / encoding / piece count
+- **board shape and size** (5×5, non-grid layouts, etc.)
+- which cell sets count as a win (lines, squares, …)
+
+Session persists only opaque cell ids and piece ids. Geometry, adjacency, and win masks live in the module — UI asks the engine/module for layout metadata to render.
+
+v1 registers only `classic4`. Do not hard-code “always 4×4 / 16 cells” outside that module.
 
 ### AchievementDef (static config)
 
