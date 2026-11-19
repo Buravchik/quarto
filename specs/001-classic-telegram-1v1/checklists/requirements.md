@@ -31,6 +31,5 @@
 
 ## Notes
 
-- Validation pass 2026-11-19: Miss Void scan-through-cell, Persistent after-own-place, Pie, rematch, 24h timeout, modular hook, RU+EN, no AI/leaderboards covered.
-- Achievement unlock list intentionally deferred to clarify (FR-016 + Assumptions); not marked NEEDS CLARIFICATION.
-- Next: `/speckit-clarify` (optional) or `/speckit-plan`.
+- Validation pass after clarify 2026-11-19: illegal call = reject; Miss/Pie lock on join; timeout via button; 6 achievements + pin≤2; max 8 slots/card.
+- Next: `/speckit-plan`.
