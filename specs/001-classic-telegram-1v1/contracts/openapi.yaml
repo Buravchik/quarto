@@ -1,0 +1,567 @@
+openapi: 3.1.0
+info:
+  title: Quarto Mini App API
+  version: 0.1.0
+  description: |
+    Bot Node process serves `/api/v1`. Mutating calls require Telegram WebApp `initData`.
+    Server validates HMAC-SHA-256 over initData using the bot token (Telegram WebApp auth).
+servers:
+  - url: /api/v1
+    description: Same origin as bot HTTP server
+tags:
+  - name: cards
+  - name: sessions
+  - name: me
+paths:
+  /cards/{cardId}:
+    get:
+      tags: [cards]
+      summary: Card status and slot summaries
+      parameters:
+        - $ref: '#/components/parameters/CardId'
+        - $ref: '#/components/parameters/InitDataQuery'
+      responses:
+        '200':
+          description: Card with up to 8 slots
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardView'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /cards:
+    post:
+      tags: [cards]
+      summary: Create card and first waiting slot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCardBody'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [cardId, sessionId]
+                properties:
+                  cardId: { type: string }
+                  sessionId: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /cards/{cardId}/slots:
+    post:
+      tags: [cards]
+      summary: Open another waiting slot on a card
+      parameters:
+        - $ref: '#/components/parameters/CardId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSlotBody'
+      responses:
+        '201':
+          description: Slot created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sessionId]
+                properties:
+                  sessionId: { type: string }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Slot cap (max 8)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlotCapError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /sessions/{sessionId}/join:
+    post:
+      tags: [sessions]
+      summary: Join waiting session as second seat; locks Miss/Pie
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitDataBody'
+      responses:
+        '200':
+          description: Session snapshot after join
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionSnapshot'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Full, already started, or self-join twice
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /sessions/{sessionId}/settings:
+    post:
+      tags: [sessions]
+      summary: Update Miss/Pie before lock
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsBody'
+      responses:
+        '200':
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionSnapshot'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Locked or not creator
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /sessions/{sessionId}/intent:
+    post:
+      tags: [sessions]
+      summary: Apply one engine intent
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntentBody'
+      responses:
+        '200':
+          description: New snapshot plus events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentResult'
+        '400':
+          description: Illegal move/declare/wrong phase; match continues on illegal_declare
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IllegalIntentError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Not your turn or not seated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: claim_timeout too early
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeoutTooEarlyError'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /sessions/{sessionId}/rematch:
+    post:
+      tags: [sessions]
+      summary: Offer, accept, or decline rematch
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RematchBody'
+      responses:
+        '200':
+          description: Offer state or new session on accept
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RematchResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /me/achievements:
+    get:
+      tags: [me]
+      summary: Unlocked and pinned achievements
+      parameters:
+        - $ref: '#/components/parameters/InitDataQuery'
+      responses:
+        '200':
+          description: Achievement lists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementsView'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /me/achievements/pin:
+    post:
+      tags: [me]
+      summary: Pin up to 2 achievements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PinAchievementsBody'
+      responses:
+        '200':
+          description: Updated pins
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementsView'
+        '400':
+          description: More than 2 pins or unknown id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+components:
+  parameters:
+    CardId:
+      name: cardId
+      in: path
+      required: true
+      schema: { type: string }
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema: { type: string }
+    InitDataQuery:
+      name: initData
+      in: query
+      required: true
+      description: Raw Telegram WebApp initData string
+      schema: { type: string }
+
+  responses:
+    Unauthorized:
+      description: Invalid or missing initData HMAC
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InitDataError'
+    Forbidden:
+      description: Authenticated but not allowed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource missing
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    RateLimited:
+      description: Soft rate limit
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    MissMode:
+      type: string
+      enum: [persistent, void]
+    SessionStatus:
+      type: string
+      enum: [waiting, pie, active, finished]
+    IntentType:
+      type: string
+      enum: [give, place, declare, pie_choice, resign, claim_timeout]
+    AchievementId:
+      type: string
+      enum: [first_match, first_quarto, drawn_board, rematch, host, comeback_seat]
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+        message: { type: string }
+
+    InitDataError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          enum: [invalid_init_data]
+
+    SlotCapError:
+      type: object
+      required: [error, max]
+      properties:
+        error:
+          type: string
+          enum: [slot_cap]
+        max:
+          type: integer
+          enum: [8]
+
+    IllegalIntentError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          enum: [illegal_declare, illegal_move, wrong_phase]
+        message: { type: string }
+
+    TimeoutTooEarlyError:
+      type: object
+      required: [error, retryAfterSeconds]
+      properties:
+        error:
+          type: string
+          enum: [timeout_too_early]
+        retryAfterSeconds: { type: integer, minimum: 0 }
+
+    InitDataBody:
+      type: object
+      required: [initData]
+      properties:
+        initData: { type: string }
+
+    CreateCardBody:
+      allOf:
+        - $ref: '#/components/schemas/InitDataBody'
+        - type: object
+          properties:
+            missMode: { $ref: '#/components/schemas/MissMode', default: persistent }
+            pieRule: { type: boolean, default: false }
+            modules:
+              type: array
+              description: Optional rule module ids (v1 only classic4 registered)
+              items: { type: string }
+              default: []
+
+    CreateSlotBody:
+      $ref: '#/components/schemas/CreateCardBody'
+
+    SettingsBody:
+      allOf:
+        - $ref: '#/components/schemas/InitDataBody'
+        - type: object
+          properties:
+            missMode: { $ref: '#/components/schemas/MissMode' }
+            pieRule: { type: boolean }
+            modules:
+              type: array
+              items: { type: string }
+              description: Ignored when settingsLocked; conflict groups enforced later
+
+    IntentBody:
+      allOf:
+        - $ref: '#/components/schemas/InitDataBody'
+        - type: object
+          required: [type]
+          properties:
+            type: { $ref: '#/components/schemas/IntentType' }
+            pieceId: { type: string }
+            cellIndex: { type: integer, minimum: 0, maximum: 15 }
+            setCells:
+              type: array
+              minItems: 4
+              maxItems: 4
+              items: { type: integer, minimum: 0, maximum: 15 }
+            pieTake: { type: boolean }
+
+    RematchBody:
+      allOf:
+        - $ref: '#/components/schemas/InitDataBody'
+        - type: object
+          required: [action]
+          properties:
+            action:
+              type: string
+              enum: [offer, accept, decline]
+
+    PinAchievementsBody:
+      allOf:
+        - $ref: '#/components/schemas/InitDataBody'
+        - type: object
+          required: [pinned]
+          properties:
+            pinned:
+              type: array
+              maxItems: 2
+              items: { $ref: '#/components/schemas/AchievementId' }
+
+    SeatView:
+      type: object
+      nullable: true
+      properties:
+        telegramUserId: { type: string }
+        displayName: { type: string }
+
+    SlotSummary:
+      type: object
+      required: [sessionId, status, missMode, pieRule, seats]
+      properties:
+        sessionId: { type: string }
+        status: { $ref: '#/components/schemas/SessionStatus' }
+        missMode: { $ref: '#/components/schemas/MissMode' }
+        pieRule: { type: boolean }
+        modules:
+          type: array
+          items: { type: string }
+        seats:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items: { $ref: '#/components/schemas/SeatView' }
+        outcome:
+          nullable: true
+          $ref: '#/components/schemas/Outcome'
+
+    CardView:
+      type: object
+      required: [cardId, slots]
+      properties:
+        cardId: { type: string }
+        slots:
+          type: array
+          maxItems: 8
+          items: { $ref: '#/components/schemas/SlotSummary' }
+
+    Outcome:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [win, draw, resign, timeout]
+        winnerSeat: { type: integer, enum: [0, 1] }
+        declaredSet:
+          type: array
+          items: { type: integer }
+
+    SessionSnapshot:
+      type: object
+      description: Full session view for Mini App board
+      required:
+        - sessionId
+        - cardId
+        - status
+        - phase
+        - missMode
+        - pieRule
+        - settingsLocked
+        - board
+        - pool
+        - turnSeat
+      properties:
+        sessionId: { type: string }
+        cardId: { type: string }
+        status: { $ref: '#/components/schemas/SessionStatus' }
+        phase:
+          type: string
+          enum: [waiting, select_give, place_received, pie_choice, finished]
+        missMode: { $ref: '#/components/schemas/MissMode' }
+        pieRule: { type: boolean }
+        settingsLocked: { type: boolean }
+        modules:
+          type: array
+          items: { type: string }
+        seat0: { $ref: '#/components/schemas/SeatView' }
+        seat1: { $ref: '#/components/schemas/SeatView' }
+        openerSeat: { type: integer, enum: [0, 1], nullable: true }
+        turnSeat: { type: integer, enum: [0, 1], nullable: true }
+        board:
+          type: array
+          minItems: 16
+          maxItems: 16
+          items:
+            type: string
+            nullable: true
+        pool:
+          type: array
+          items: { type: string }
+        pieceInHand: { type: string, nullable: true }
+        turnNotifiedAt: { type: string, format: date-time, nullable: true }
+        outcome:
+          nullable: true
+          $ref: '#/components/schemas/Outcome'
+
+    IntentResult:
+      type: object
+      required: [session, events]
+      properties:
+        session: { $ref: '#/components/schemas/SessionSnapshot' }
+        events:
+          type: array
+          items: { type: string }
+
+    RematchResult:
+      type: object
+      properties:
+        newSessionId: { type: string }
+        offerState:
+          type: string
+          enum: [offered, declined, none]
+
+    AchievementsView:
+      type: object
+      required: [unlocked, pinned]
+      properties:
+        unlocked:
+          type: array
+          items: { $ref: '#/components/schemas/AchievementId' }
+        pinned:
+          type: array
+          maxItems: 2
+          items: { $ref: '#/components/schemas/AchievementId' }

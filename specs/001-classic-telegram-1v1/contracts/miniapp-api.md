@@ -1,5 +1,7 @@
 # Contract: Mini App → Bot HTTP API
 
+Machine-readable: [openapi.yaml](./openapi.yaml) (OpenAPI 3.1).
+
 All mutating requests:
 
 - Header or body field: Telegram WebApp `initData` (raw string).

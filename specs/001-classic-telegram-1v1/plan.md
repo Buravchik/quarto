@@ -70,7 +70,7 @@ src/
     lines.ts
     miss.ts
     pie.ts
-    modules/                 # stubs / registry for later mode packs
+    modules/                 # GameModule registry; v1 = classic4; packs plug in later
   telegram/
     bot.ts                   # Telegraf: commands, card messages, notifications
     initData.ts              # HMAC validate WebApp initData

@@ -34,6 +34,7 @@
 | `status` | `waiting` \| `pie` \| `active` \| `finished` |
 | `missMode` | `persistent` \| `void` (default persistent) |
 | `pieRule` | boolean (default false) |
+| `modules` | string[] active rule module ids (v1: `["classic4"]` or empty ≡ classic) |
 | `settingsLocked` | true after second seat joins |
 | `seat0` / `seat1` | `{ telegramUserId, joinedAt } \| null` |
 | `openerSeat` | 0 \| 1 after random assign (may swap after pie) |

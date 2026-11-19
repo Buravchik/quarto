@@ -51,8 +51,8 @@
 
 ## R9 — Mode modules hook
 
-- **Decision**: Registry interface `GameModule` (extra win masks, pick model, board size) registered at engine construction; v1 registers only `classic4`. Conflict groups enforced when activating modules (later specs).
-- **Rationale**: Spec FR-019 without implementing catalog now.
+- **Decision**: Engine exposes a **module registry** (`GameModule`: win lines/masks, pick model, board geometry, optional intent extensions). Modules register at construction; session may list active module ids (settings, locked on join). v1 ships/registers only `classic4`. Later mode packs plug in without rewriting Telegram shell. Conflict groups (max 1 per group) enforced when activating modules (later specs / catalog).
+- **Rationale**: Spec FR-019 — capability to attach rule modules now; catalog content later.
 - **Alternatives considered**: Hard-code classic forever — blocks future specs.
 
 ## R10 — i18n
