@@ -1,0 +1,11 @@
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8090:8080"
+    env_file:
+      - .env
+    environment:
+      PORT: "8080"
+      # Prefer long polling locally; set WEBHOOK_URL when behind a stable public HTTPS
