@@ -1,7 +1,15 @@
 # Telegram manual smoke (quickstart A–G)
 
-API prod smoke covers most paths (`BOT_TOKEN=… node scripts/smoke-prod.mjs`).  
-This checklist is what still needs two real Telegram accounts.
+## Automated coverage (what it does / does not)
+
+| Check | Command | Covers |
+|-------|---------|--------|
+| Engine + API contracts | `npm test` | Rules, auth, rematch — **not** Mini App shell |
+| initData race unit | `npm run test:miniapp` | Late `Telegram.WebApp` after mount |
+| Mini App lobby e2e | `npm run build && npm run smoke:miniapp` | Lobby CTA after late initData (Playwright) |
+| API prod A–G | `BOT_TOKEN=… npm run smoke:api` | Cloud Run intents — **not** UI |
+
+Two real Telegram accounts are still required for full give/place UX feel.
 
 ## Setup
 
