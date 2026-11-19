@@ -16,6 +16,7 @@ type Snapshot = {
   pool: string[];
   pieceInHand: string | null;
   turnSeat: 0 | 1 | null;
+  turnNotifiedAt: string | null;
   outcome: { type: string; winnerSeat?: number } | null;
   seat0: { telegramUserId: string } | null;
   seat1: { telegramUserId: string } | null;
@@ -105,6 +106,35 @@ export function GamePanel({ apiBase, sessionId, initData }: Props) {
         return;
       }
       setSession(data);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function rematch(action: "offer" | "accept" | "decline") {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`${apiBase}/api/v1/sessions/${sessionId}/rematch`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ initData, action }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        newSessionId?: string;
+        offerState?: string;
+      };
+      if (!res.ok) {
+        setError(data.error ?? `rematch ${res.status}`);
+        return;
+      }
+      if (data.newSessionId && typeof window !== "undefined") {
+        const u = new URL(window.location.href);
+        u.searchParams.set("sessionId", data.newSessionId);
+        window.location.href = u.toString();
+        return;
+      }
     } finally {
       setBusy(false);
     }
@@ -207,13 +237,48 @@ export function GamePanel({ apiBase, sessionId, initData }: Props) {
         </div>
       ) : null}
 
-      <button
-        type="button"
-        disabled={busy || session.status === "waiting" || session.status === "finished"}
-        onClick={() => void sendIntent({ type: "resign" })}
-      >
-        Resign
-      </button>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+        <button
+          type="button"
+          disabled={busy || session.status === "waiting" || session.status === "finished"}
+          onClick={() => void sendIntent({ type: "resign" })}
+        >
+          Resign
+        </button>
+        <button
+          type="button"
+          disabled={busy || session.status === "waiting" || session.status === "finished"}
+          onClick={() => void sendIntent({ type: "claim_timeout" })}
+        >
+          Claim timeout win
+        </button>
+      </div>
+
+      {session.status === "finished" ? (
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void rematch("offer")}
+          >
+            Offer rematch
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void rematch("accept")}
+          >
+            Accept rematch
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void rematch("decline")}
+          >
+            Decline
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

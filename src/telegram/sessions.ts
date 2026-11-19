@@ -173,6 +173,78 @@ export async function joinSession(sessionId: string, userId: string) {
   return { ok: true as const, sessionId };
 }
 
+export async function rematchAction(
+  sessionId: string,
+  userId: string,
+  action: "offer" | "accept" | "decline",
+) {
+  const row = await getSession(sessionId);
+  if (!row) return { error: "not_found" as const };
+  if (row.status !== "finished") return { error: "forbidden" as const };
+  const seat0 = row.seat0 as Seat;
+  const seat1 = row.seat1 as Seat;
+  const seated =
+    seat0?.telegramUserId === userId || seat1?.telegramUserId === userId;
+  if (!seated) return { error: "forbidden" as const };
+
+  const db = getDb();
+  const offer = row.rematchOffer as { offeredBy: string; state: "offered" | "declined" } | null;
+
+  if (action === "offer") {
+    await db
+      .update(sessions)
+      .set({
+        rematchOffer: { offeredBy: userId, state: "offered" },
+        updatedAt: new Date(),
+      })
+      .where(eq(sessions.sessionId, sessionId));
+    return { offerState: "offered" as const };
+  }
+
+  if (action === "decline") {
+    if (!offer || offer.state !== "offered") return { offerState: "none" as const };
+    await db
+      .update(sessions)
+      .set({
+        rematchOffer: { offeredBy: offer.offeredBy, state: "declined" },
+        updatedAt: new Date(),
+      })
+      .where(eq(sessions.sessionId, sessionId));
+    return { offerState: "declined" as const };
+  }
+
+  // accept
+  if (!offer || offer.state !== "offered") return { error: "forbidden" as const };
+  if (offer.offeredBy === userId) return { error: "forbidden" as const };
+  if (!seat0?.telegramUserId || !seat1?.telegramUserId) {
+    return { error: "forbidden" as const };
+  }
+
+  const newSessionId = await createSession({
+    cardId: row.cardId,
+    seat0UserId: seat0.telegramUserId,
+    missMode: row.missMode as MissMode,
+    pieRule: row.pieRule,
+  });
+  const joined = await joinSession(newSessionId, seat1.telegramUserId);
+  if ("error" in joined) return { error: "forbidden" as const };
+
+  await db
+    .update(sessions)
+    .set({
+      rematchOfSessionId: sessionId,
+      rematchOffer: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(sessions.sessionId, newSessionId));
+  await db
+    .update(sessions)
+    .set({ rematchOffer: null, updatedAt: new Date() })
+    .where(eq(sessions.sessionId, sessionId));
+
+  return { newSessionId, offerState: "none" as const };
+}
+
 export async function saveEngine(sessionId: string, engine: EngineState, status?: string) {
   const db = getDb();
   const statusOut =

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { getDb } from "../../db/client";
 import { cards } from "../../db/schema";
 import type { CardSurface, MissMode } from "../quarto/types";
+import { ensurePlayer, getAchievements, grantAchievements } from "./players";
 import { createSession, listSessionsForCard, toSnapshot, type Seat } from "./sessions";
 
 const SLOT_CAP = 8;
@@ -16,6 +17,8 @@ export async function createCard(opts: {
 }) {
   const db = getDb();
   const cardId = randomUUID();
+  await ensurePlayer(opts.ownerTelegramUserId);
+  await grantAchievements(opts.ownerTelegramUserId, ["host"]);
   await db.insert(cards).values({
     cardId,
     ownerTelegramUserId: opts.ownerTelegramUserId,
@@ -64,30 +67,41 @@ export async function addSlot(opts: {
   return { sessionId };
 }
 
+async function seatLabel(seat: Seat): Promise<string> {
+  if (!seat?.telegramUserId) return "—";
+  const ach = await getAchievements(seat.telegramUserId);
+  const pins = (ach.pinned as string[]).slice(0, 2);
+  const pinTxt = pins.length ? ` [${pins.join(",")}]` : "";
+  return `${seat.telegramUserId}${pinTxt}`;
+}
+
 export async function cardView(cardId: string) {
   const card = await getCard(cardId);
   if (!card) return null;
   const slots = await listSessionsForCard(cardId);
+  const mapped = [];
+  for (const s of slots) {
+    const snap = toSnapshot(s);
+    const seat0 = s.seat0 as Seat;
+    const seat1 = s.seat1 as Seat;
+    mapped.push({
+      sessionId: s.sessionId,
+      status: s.status,
+      missMode: s.missMode,
+      pieRule: s.pieRule,
+      modules: s.modules,
+      seats: [seat0, seat1] as [Seat, Seat],
+      seatLabels: [await seatLabel(seat0), await seatLabel(seat1)] as [string, string],
+      turnSeat: snap.turnSeat,
+      outcome: snap.outcome,
+    });
+  }
   return {
     cardId,
     surface: card.surface,
     chatId: card.chatId,
     messageId: card.messageId,
-    slots: slots.map((s) => {
-      const snap = toSnapshot(s);
-      const seat0 = s.seat0 as Seat;
-      const seat1 = s.seat1 as Seat;
-      return {
-        sessionId: s.sessionId,
-        status: s.status,
-        missMode: s.missMode,
-        pieRule: s.pieRule,
-        modules: s.modules,
-        seats: [seat0, seat1] as [Seat, Seat],
-        turnSeat: snap.turnSeat,
-        outcome: snap.outcome,
-      };
-    }),
+    slots: mapped,
   };
 }
 
@@ -95,8 +109,8 @@ export function formatCardMessage(view: NonNullable<Awaited<ReturnType<typeof ca
   const webapp = process.env.TELEGRAM_WEBAPP_URL;
   const lines = [`Quarto · ${view.cardId.slice(0, 8)}`, `Surface: ${view.surface}`, ""];
   view.slots.forEach((slot, i) => {
-    const a = slot.seats[0]?.telegramUserId ?? "—";
-    const b = slot.seats[1]?.telegramUserId ?? "waiting";
+    const a = slot.seatLabels?.[0] ?? slot.seats[0]?.telegramUserId ?? "—";
+    const b = slot.seatLabels?.[1] ?? (slot.seats[1]?.telegramUserId ? slot.seats[1].telegramUserId : "waiting");
     const turn =
       slot.status === "active" && slot.turnSeat != null ? ` · turn seat ${slot.turnSeat}` : "";
     lines.push(`${i + 1}. ${slot.status}${turn} · ${a} vs ${b}`);

@@ -54,6 +54,10 @@ export const sessions = pgTable("sessions", {
   turnNotifiedAt: timestamp("turn_notified_at", { withTimezone: true }),
   outcome: jsonb("outcome"),
   rematchOfSessionId: varchar("rematch_of_session_id", { length: 64 }),
+  rematchOffer: jsonb("rematch_offer").$type<{
+    offeredBy: string;
+    state: "offered" | "declined";
+  } | null>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

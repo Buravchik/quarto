@@ -4,14 +4,18 @@ import { addSlot, cardView, createCard, SLOT_CAP } from "../cards";
 import { loadEnvFile, readJson, sendJson } from "../http";
 import { validateInitData } from "../initData";
 import { dispatchSessionEvents } from "../notify";
+import { getAchievements, grantAchievements, grantMatchUnlocks, pinAchievements } from "../players";
 import {
   engineFromRow,
   getSession,
   joinSession,
+  rematchAction,
   saveEngine,
   toSnapshot,
   updateSessionSettings,
+  type Seat,
 } from "../sessions";
+import { getCard } from "../cards";
 
 loadEnvFile();
 
@@ -142,10 +146,36 @@ export async function intentHandler(
     const engine = engineFromRow(row);
     const result = applyIntent(engine, seat, intent);
     if (!result.ok) {
-      const status = result.error === "illegal_declare" || result.error === "illegal_move" || result.error === "wrong_phase" ? 400 : result.error === "not_your_turn" ? 403 : 409;
+      if (result.error === "timeout_too_early") {
+        return sendJson(res, 409, {
+          error: "timeout_too_early",
+          retryAfterSeconds: result.retryAfterSeconds ?? 0,
+        });
+      }
+      const status =
+        result.error === "illegal_declare" ||
+        result.error === "illegal_move" ||
+        result.error === "wrong_phase"
+          ? 400
+          : result.error === "not_your_turn" || result.error === "not_waiting_seat"
+            ? 403
+            : 409;
       return sendJson(res, status, { error: result.error });
     }
     await saveEngine(params.sessionId!, result.state);
+    if (result.events.includes("match_ended")) {
+      const seat0 = row.seat0 as Seat;
+      const seat1 = row.seat1 as Seat;
+      const card = await getCard(row.cardId);
+      await grantMatchUnlocks({
+        seat0UserId: seat0?.telegramUserId,
+        seat1UserId: seat1?.telegramUserId,
+        outcome: result.state.outcome,
+        pieRule: result.state.pieRule,
+        pieResolved: result.state.pieResolved,
+        cardOwnerId: card?.ownerTelegramUserId,
+      });
+    }
     await dispatchSessionEvents(params.sessionId!, result.events);
     const updated = await getSession(params.sessionId!);
     return sendJson(res, 200, {
@@ -201,12 +231,57 @@ export async function settingsHandler(
   }
 }
 
-export async function rematchStub(req: IncomingMessage, res: ServerResponse) {
-  void req;
-  sendJson(res, 501, { error: "not_implemented" });
+export async function rematchHandler(
+  req: IncomingMessage,
+  res: ServerResponse,
+  params: Record<string, string>,
+) {
+  try {
+    const body = await readJson<{ initData?: string; action?: "offer" | "accept" | "decline" }>(req);
+    const user = auth(body.initData);
+    if (!body.action) return sendJson(res, 400, { error: "illegal_move" });
+    const result = await rematchAction(params.sessionId!, String(user.user.id), body.action);
+    if ("error" in result) {
+      const code = result.error === "not_found" ? 404 : 403;
+      return sendJson(res, code, { error: result.error });
+    }
+    if (body.action === "offer") {
+      await dispatchSessionEvents(params.sessionId!, ["rematch_offered"]);
+    }
+    if (body.action === "accept" && "newSessionId" in result && result.newSessionId) {
+      await grantAchievements(String(user.user.id), ["rematch"]);
+      const row = await getSession(params.sessionId!);
+      const other =
+        (row?.seat0 as Seat)?.telegramUserId === String(user.user.id)
+          ? (row?.seat1 as Seat)?.telegramUserId
+          : (row?.seat0 as Seat)?.telegramUserId;
+      if (other) await grantAchievements(other, ["rematch"]);
+    }
+    return sendJson(res, 200, result);
+  } catch {
+    return sendJson(res, 401, { error: "invalid_init_data" });
+  }
 }
 
-export async function achievementsStub(req: IncomingMessage, res: ServerResponse) {
-  void req;
-  sendJson(res, 501, { error: "not_implemented" });
+export async function getAchievementsHandler(req: IncomingMessage, res: ServerResponse) {
+  try {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const user = auth(url.searchParams.get("initData") ?? undefined);
+    const view = await getAchievements(String(user.user.id));
+    return sendJson(res, 200, view);
+  } catch {
+    return sendJson(res, 401, { error: "invalid_init_data" });
+  }
+}
+
+export async function pinAchievementsHandler(req: IncomingMessage, res: ServerResponse) {
+  try {
+    const body = await readJson<{ initData?: string; pinned?: string[] }>(req);
+    const user = auth(body.initData);
+    const result = await pinAchievements(String(user.user.id), body.pinned ?? []);
+    if ("error" in result) return sendJson(res, 400, { error: result.error });
+    return sendJson(res, 200, result);
+  } catch {
+    return sendJson(res, 401, { error: "invalid_init_data" });
+  }
 }

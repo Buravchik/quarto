@@ -6,6 +6,7 @@ import {
 } from "./miss";
 import { resolveModules } from "./modules/registry";
 import { applyPieChoice, shouldEnterPieChoice } from "./pie";
+import { canClaimTimeout } from "./timeout";
 import type { MissMode } from "./types";
 
 export type Phase = "waiting" | "select_give" | "place_received" | "pie_choice" | "finished";
@@ -82,7 +83,7 @@ export function createInitialState(opts?: {
 
 export type ApplyResult =
   | { ok: true; state: EngineState; events: string[] }
-  | { ok: false; error: string; state: EngineState };
+  | { ok: false; error: string; state: EngineState; retryAfterSeconds?: number };
 
 function clone(state: EngineState): EngineState {
   return {
@@ -126,7 +127,25 @@ export function applyIntent(state: EngineState, seat: 0 | 1, intent: Intent): Ap
   }
 
   if (intent.type === "claim_timeout") {
-    return { ok: false, error: "timeout_too_early", state };
+    const gate = canClaimTimeout({
+      turnSeat: state.turnSeat,
+      claimingSeat: seat,
+      turnNotifiedAt: state.turnNotifiedAt,
+      phase: state.phase,
+    });
+    if (!gate.ok) {
+      return {
+        ok: false,
+        error: gate.error,
+        state,
+        retryAfterSeconds: gate.retryAfterSeconds,
+      };
+    }
+    const next = clone(state);
+    next.phase = "finished";
+    next.outcome = { type: "timeout", winnerSeat: seat };
+    next.turnSeat = null;
+    return { ok: true, state: next, events: ["match_ended"] };
   }
 
   if (intent.type === "pie_choice") {

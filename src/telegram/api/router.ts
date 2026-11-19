@@ -1,13 +1,14 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
-  achievementsStub,
+  getAchievementsHandler,
   getCardHandler,
   getSessionHandler,
   intentHandler,
   joinHandler,
+  pinAchievementsHandler,
   postCardHandler,
   postSlotHandler,
-  rematchStub,
+  rematchHandler,
   settingsHandler,
 } from "./handlers";
 import { rateLimit } from "./rateLimit";
@@ -42,9 +43,9 @@ export function registerOpenApiStubs() {
   add("POST", "/api/v1/sessions/:sessionId/join", joinHandler);
   add("POST", "/api/v1/sessions/:sessionId/settings", settingsHandler);
   add("POST", "/api/v1/sessions/:sessionId/intent", intentHandler);
-  add("POST", "/api/v1/sessions/:sessionId/rematch", rematchStub);
-  add("GET", "/api/v1/me/achievements", achievementsStub);
-  add("POST", "/api/v1/me/achievements/pin", achievementsStub);
+  add("POST", "/api/v1/sessions/:sessionId/rematch", rematchHandler);
+  add("GET", "/api/v1/me/achievements", getAchievementsHandler);
+  add("POST", "/api/v1/me/achievements/pin", pinAchievementsHandler);
 }
 
 export async function handleApi(req: IncomingMessage, res: ServerResponse): Promise<boolean> {

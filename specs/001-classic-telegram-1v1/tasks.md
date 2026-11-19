@@ -107,18 +107,18 @@ description: "Task list for Quarto classic Telegram 1v1"
 
 ### Tests for User Story 3
 
-- [ ] T032 [P] [US3] Unit/contract timeout claim gating in `tests/unit/quarto/timeout.test.ts` and/or `tests/contract/api/timeout.test.ts` (cite `data-model.md` `MatchSession.turnNotifiedAt`)
-- [ ] T033 [P] [US3] Contract rematch offer/accept in `tests/contract/api/rematch.test.ts`
-- [ ] T034 [P] [US3] Contract achievements pin max 2 in `tests/contract/api/achievements.test.ts` (cite `data-model.md` `PlayerIdentity.pinnedAchievementIds` max 2; `AchievementDef` ids)
+- [x] T032 [P] [US3] Unit/contract timeout claim gating in `tests/unit/quarto/timeout.test.ts` and/or `tests/contract/api/timeout.test.ts` (cite `data-model.md` `MatchSession.turnNotifiedAt`)
+- [x] T033 [P] [US3] Contract rematch offer/accept in `tests/contract/api/rematch.test.ts`
+- [x] T034 [P] [US3] Contract achievements pin max 2 in `tests/contract/api/achievements.test.ts` (cite `data-model.md` `PlayerIdentity.pinnedAchievementIds` max 2; `AchievementDef` ids)
 
 ### Implementation for User Story 3
 
-- [ ] T035 [US3] Emit `your_turn` / `timeout_available`; set `turnNotifiedAt` on turn change; card edit always in `src/telegram/` (bot-notifications.md)
-- [ ] T036 [US3] Intents `resign` + `claim_timeout` in engine + API (FR-014)
-- [ ] T037 [US3] API rematch offer/accept/decline + new session on same card in `src/telegram/api/` (cite `data-model.md` `MatchSession.rematchOfSessionId`)
-- [ ] T038 [US3] Achievement unlock predicates + `GET/POST /me/achievements` (+ pin) in `src/telegram/` and Mini App (FR-016)
-- [ ] T039 [US3] Show up to two pinned achievement icons by name on card message in `src/telegram/cards.ts`
-- [ ] T040 [US3] Rematch UI + claim-timeout control in Mini App `src/components/`
+- [x] T035 [US3] Emit `your_turn` / `timeout_available`; set `turnNotifiedAt` on turn change; card edit always in `src/telegram/` (bot-notifications.md)
+- [x] T036 [US3] Intents `resign` + `claim_timeout` in engine + API (FR-014)
+- [x] T037 [US3] API rematch offer/accept/decline + new session on same card in `src/telegram/api/` (cite `data-model.md` `MatchSession.rematchOfSessionId`)
+- [x] T038 [US3] Achievement unlock predicates + `GET/POST /me/achievements` (+ pin) in `src/telegram/` and Mini App (FR-016)
+- [x] T039 [US3] Show up to two pinned achievement icons by name on card message in `src/telegram/cards.ts`
+- [x] T040 [US3] Rematch UI + claim-timeout control in Mini App `src/components/`
 
 **Checkpoint**: Full v1 loop per spec
 

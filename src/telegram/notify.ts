@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { cards } from "../../db/schema";
 import { t } from "../i18n";
+import { timeoutReady } from "../quarto/timeout";
 import { cardView, formatCardMessage } from "./cards";
 import { getSession, type Seat } from "./sessions";
 
@@ -72,8 +73,25 @@ export async function notifyTurnChanged(sessionId: string) {
   const seat1 = row.seat1 as Seat;
   const turn = row.turnSeat as 0 | 1 | null;
   const target = turn === 0 ? seat0 : turn === 1 ? seat1 : null;
+  const waiting = turn === 0 ? seat1 : turn === 1 ? seat0 : null;
   const copy = t("en");
   await dm(target?.telegramUserId, copy.yourTurn);
+  // If already past 24h (replay/notify), ping waiting seat
+  if (timeoutReady(row.turnNotifiedAt ? row.turnNotifiedAt.toISOString() : null).ready) {
+    await dm(waiting?.telegramUserId, copy.timeoutAvailable);
+  }
+  await refreshCardMessage(row.cardId);
+}
+
+export async function notifyRematchOffered(sessionId: string) {
+  const row = await getSession(sessionId);
+  if (!row) return;
+  const seat0 = row.seat0 as Seat;
+  const seat1 = row.seat1 as Seat;
+  const offer = row.rematchOffer as { offeredBy: string } | null;
+  const other =
+    offer?.offeredBy === seat0?.telegramUserId ? seat1?.telegramUserId : seat0?.telegramUserId;
+  await dm(other, t("en").rematchOffered);
   await refreshCardMessage(row.cardId);
 }
 
@@ -82,5 +100,6 @@ export async function dispatchSessionEvents(sessionId: string, events: string[])
     if (event === "opponent_joined") await notifyOpponentJoined(sessionId);
     else if (event === "match_ended") await notifyMatchEnded(sessionId);
     else if (event === "turn_changed") await notifyTurnChanged(sessionId);
+    else if (event === "rematch_offered") await notifyRematchOffered(sessionId);
   }
 }
