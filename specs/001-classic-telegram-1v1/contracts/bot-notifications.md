@@ -10,4 +10,9 @@ Emitted by server after successful intents / joins (not by Mini App).
 | `rematch_offered` | other seat | Accept/decline |
 | `timeout_available` | waiting seat | Optional ping when 24h elapsed (does not end match) |
 
-Delivery: Telegram message (DM preferred when possible; otherwise reply/edit in card chat per how the card was shared). Copy is i18n RU/EN. No full board dump required in the notification text — deep link / button opens Mini App.
+Delivery (both):
+
+1. **Card message** — always edit/update the challenge card in place (`group` or `dm` surface) so slots/status stay visible in the chat.
+2. **DM ping** — also notify the relevant player in private when possible (`your_turn`, `match_ended`, `rematch_offered`, `timeout_available`, `opponent_joined`).
+
+Copy is i18n RU/EN. Card shows short status per slot (waiting / turn / finished), not a full board. Deep link / button opens Mini App.
