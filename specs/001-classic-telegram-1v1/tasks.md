@@ -22,11 +22,11 @@ description: "Task list for Quarto classic Telegram 1v1"
 
 **Purpose**: Scaffold repo per plan.md
 
-- [ ] T001 Create directory layout `app/`, `public/`, `src/quarto/`, `src/quarto/modules/`, `src/telegram/`, `src/telegram/api/`, `src/components/`, `src/i18n/`, `tests/unit/quarto/`, `tests/contract/api/` per plan.md
-- [ ] T002 Initialize TypeScript Node 22 project with Next.js (static export), React, Telegraf, Zod, Drizzle ORM + `pg` against Supabase `DATABASE_URL`, Vitest in `package.json`
-- [ ] T003 [P] Add ESLint/Prettier (or repo-standard lint) config at repo root
-- [ ] T004 [P] Add `.env.example` with `BOT_TOKEN`, `TELEGRAM_WEBAPP_URL`, `DATABASE_URL` (Supabase) and gitignore secrets
-- [ ] T005 [P] Add `Dockerfile` for bot/API (Node 22) and GitHub Pages/static Mini App build scripts in `package.json`
+- [x] T001 Create directory layout `app/`, `public/`, `src/quarto/`, `src/quarto/modules/`, `src/telegram/`, `src/telegram/api/`, `src/components/`, `src/i18n/`, `tests/unit/quarto/`, `tests/contract/api/` per plan.md
+- [x] T002 Initialize TypeScript Node 22 project with Next.js (static export), React, Telegraf, Zod, Drizzle ORM + `pg` against Supabase `DATABASE_URL`, Vitest in `package.json`
+- [x] T003 [P] Add ESLint/Prettier (or repo-standard lint) config at repo root
+- [x] T004 [P] Add `.env.example` with `BOT_TOKEN`, `TELEGRAM_WEBAPP_URL`, `DATABASE_URL` (Supabase) and gitignore secrets
+- [x] T005 [P] Add `Dockerfile` for bot/API (Node 22) and GitHub Pages/static Mini App build scripts in `package.json`
 
 ---
 
@@ -36,13 +36,13 @@ description: "Task list for Quarto classic Telegram 1v1"
 
 **⚠️ CRITICAL**: Blocks US1–US3
 
-- [ ] T006 Create Supabase/Postgres schema + migrations for `PlayerIdentity`, `ChallengeCard`, `MatchSession` (cite `data-model.md`: `ChallengeCard.surface` enum `group|dm`; `ChallengeCard.slots` max 8; `MatchSession.modules`; `MatchSession.missMode` / `pieRule` / `settingsLocked`; opaque `board` occupancy) under `src/telegram/` or `db/migrations/`
-- [ ] T007 [P] Implement Telegram `initData` HMAC validation in `src/telegram/initData.ts`
-- [ ] T008 [P] Scaffold `/api/v1` router + rate-limit middleware in `src/telegram/api/` with route stubs matching `contracts/openapi.yaml` (all paths/methods; handlers may be TODO until US phases)
-- [ ] T009 Define `GameModule` registry interface (traits, PieceSet, BoardLayout, win masks, pick model) and register stub `classic4` in `src/quarto/modules/`
-- [ ] T010 Implement pure classic engine shell (phases, intents types, no Telegram) in `src/quarto/engine.ts`, `src/quarto/types.ts`
-- [ ] T011 [P] RU/EN string tables scaffold in `src/i18n/`
-- [ ] T012 Wire Telegraf bot entry + env loading in `src/telegram/bot.ts` (polling local / webhook prod hook)
+- [x] T006 Create Supabase/Postgres schema + migrations for `PlayerIdentity`, `ChallengeCard`, `MatchSession` (cite `data-model.md`: `ChallengeCard.surface` enum `group|dm`; `ChallengeCard.slots` max 8; `MatchSession.modules`; `MatchSession.missMode` / `pieRule` / `settingsLocked`; opaque `board` occupancy) under `src/telegram/` or `db/migrations/`
+- [x] T007 [P] Implement Telegram `initData` HMAC validation in `src/telegram/initData.ts`
+- [x] T008 [P] Scaffold `/api/v1` router + rate-limit middleware in `src/telegram/api/` with route stubs matching `contracts/openapi.yaml` (all paths/methods; handlers may be TODO until US phases)
+- [x] T009 Define `GameModule` registry interface (traits, PieceSet, BoardLayout, win masks, pick model) and register stub `classic4` in `src/quarto/modules/`
+- [x] T010 Implement pure classic engine shell (phases, intents types, no Telegram) in `src/quarto/engine.ts`, `src/quarto/types.ts`
+- [x] T011 [P] RU/EN string tables scaffold in `src/i18n/`
+- [x] T012 Wire Telegraf bot entry + env loading in `src/telegram/bot.ts` (polling local / webhook prod hook)
 
 **Checkpoint**: DB + auth + engine shell + bot process boot — stories can start
 
