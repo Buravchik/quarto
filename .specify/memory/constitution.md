@@ -1,50 +1,63 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: (empty template) → 1.0.0
+- Modified principles: placeholders → Quatro I–VIII (see draft)
+- Added sections: Security & integrity; Delivery
+- Removed sections: none
+- Deferred: product language (RU/EN); Mini App required at MVP — specify/clarify if needed
+- Remove this report comment before treating the file as settled governance (optional cleanup)
+-->
+
+# Quatro Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Telegram game
+Quatro is a game that runs on Telegram.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Telegram platform
+Ship through Telegram's official bot and/or Mini App APIs.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Secrets stay out of the repo
+Bot tokens and keys live in env or a secret store. Not in git. Not in the client bundle. Not logged in full.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Do not trust the client
+The server checks who sent the request (for example Telegram `initData`), validates every field, and sanitizes input. The server decides game state. The client does not.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Rate limits and player isolation
+The backend limits how often a client can call it. A player may only act in their own games and sessions. They must not change another player's game or progress.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### VI. Rules live in a state machine
+Party rules (states, transitions, moves, win/lose, score) live in a state machine. Telegram code delivers events and shows results. It does not decide transitions. The state machine runs in tests without a live bot.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### VII. Store little
+Keep only what you need to play and to operate. Do not log message bodies or extra personal data.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### VIII. Build the approved minimum
+Implement what the approved Spec Kit feature requires. Do not add speculative features.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Security & integrity
+
+- Treat every Mini App or client write as untrusted until auth and validation pass.
+- Reject or ignore requests that fail auth, field checks, or ownership checks.
+- Prefer failing closed when ownership of a game or session is unclear.
+
+## Delivery
+
+- Spec Kit drives work: constitution → specify → plan → tasks → implement → converge (plus clarify/checklist/analyze when needed).
+- Choose the tech stack in `/speckit-plan`, not here.
+- Sudoku is an architecture reference only. Do not copy its product UX.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This file beats informal habit when they conflict.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Change it in git with a short rationale. Version bumps:
+
+- MAJOR — remove or redefine a principle
+- MINOR — add a principle or section
+- PATCH — wording only
+
+Plan, implement, and converge must respect these principles. If something is unclear, amend this file instead of silently ignoring it.
+
+**Version**: 1.0.0 | **Ratified**: 2026-11-19 | **Last Amended**: 2026-11-19
