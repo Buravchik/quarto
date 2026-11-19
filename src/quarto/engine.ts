@@ -1,5 +1,11 @@
-import { boardFull, isQuartoSet } from "./lines";
+import { boardFull } from "./lines";
+import {
+  canDeclareSet,
+  completedSetsThrough,
+  voidSets,
+} from "./miss";
 import { resolveModules } from "./modules/registry";
+import { applyPieChoice, shouldEnterPieChoice } from "./pie";
 import type { MissMode } from "./types";
 
 export type Phase = "waiting" | "select_give" | "place_received" | "pie_choice" | "finished";
@@ -30,9 +36,19 @@ export type EngineState = {
     declaredSet?: number[];
   };
   firstPlaceDone: boolean;
+  pieResolved: boolean;
   turnNotifiedAt: string | null;
-  /** Seat that just placed; may declare before giving. */
+  /** Seat that just placed; may declare before giving (Persistent / Void placer window). */
   lastPlacerSeat: 0 | 1 | null;
+  /** Cell index of last placement (declare must include this cell). */
+  lastPlacedCell: number | null;
+  /**
+   * Void: after placer gave without declaring, receiver may claim through
+   * lastPlacedCell before placing.
+   */
+  voidClaimOpen: boolean;
+  /** Sets completed by last place; voided when opponent places without claiming (Void). */
+  pendingVoidSets: number[][];
 };
 
 export function createInitialState(opts?: {
@@ -55,8 +71,12 @@ export function createInitialState(opts?: {
     voidedSets: [],
     outcome: null,
     firstPlaceDone: false,
+    pieResolved: false,
     turnNotifiedAt: null,
     lastPlacerSeat: null,
+    lastPlacedCell: null,
+    voidClaimOpen: false,
+    pendingVoidSets: [],
   };
 }
 
@@ -70,6 +90,7 @@ function clone(state: EngineState): EngineState {
     board: [...state.board],
     pool: [...state.pool],
     voidedSets: state.voidedSets.map((s) => [...s]),
+    pendingVoidSets: state.pendingVoidSets.map((s) => [...s]),
     outcome: state.outcome ? { ...state.outcome } : null,
   };
 }
@@ -83,6 +104,10 @@ export function startMatch(state: EngineState, openerSeat: 0 | 1 = Math.random()
   next.phase = "select_give";
   next.turnNotifiedAt = new Date().toISOString();
   next.lastPlacerSeat = null;
+  next.lastPlacedCell = null;
+  next.voidClaimOpen = false;
+  next.pendingVoidSets = [];
+  next.pieResolved = !next.pieRule;
   return next;
 }
 
@@ -101,13 +126,17 @@ export function applyIntent(state: EngineState, seat: 0 | 1, intent: Intent): Ap
   }
 
   if (intent.type === "claim_timeout") {
-    // US3: full gating; US1 stub rejects early
     return { ok: false, error: "timeout_too_early", state };
   }
 
   if (intent.type === "pie_choice") {
-    // US2
-    return { ok: false, error: "not_implemented", state };
+    const result = applyPieChoice(state, seat, intent.pieTake);
+    if (!result.ok) return { ok: false, error: result.error, state };
+    return { ok: true, state: result.state, events: ["turn_changed"] };
+  }
+
+  if (intent.type === "declare") {
+    return applyDeclare(state, seat, intent.setCells);
   }
 
   if (state.turnSeat !== null && state.turnSeat !== seat) {
@@ -119,9 +148,6 @@ export function applyIntent(state: EngineState, seat: 0 | 1, intent: Intent): Ap
   }
   if (intent.type === "place") {
     return applyPlace(state, seat, intent.cellIndex);
-  }
-  if (intent.type === "declare") {
-    return applyDeclare(state, seat, intent.setCells);
   }
 
   return { ok: false, error: "not_implemented", state };
@@ -148,7 +174,17 @@ function applyGive(state: EngineState, seat: 0 | 1, pieceId: string): ApplyResul
   next.phase = "place_received";
   next.turnSeat = seat === 0 ? 1 : 0;
   next.turnNotifiedAt = new Date().toISOString();
-  next.lastPlacerSeat = null;
+
+  // Void: if placer hands off without declaring, opponent may claim before place
+  if (next.missMode === "void" && next.lastPlacerSeat === seat && next.pendingVoidSets.length > 0) {
+    next.voidClaimOpen = true;
+  } else {
+    next.voidClaimOpen = false;
+  }
+  // Giving ends placer declare window for Persistent
+  if (next.missMode === "persistent") {
+    next.lastPlacerSeat = null;
+  }
   return { ok: true, state: next, events: ["turn_changed"] };
 }
 
@@ -167,13 +203,22 @@ function applyPlace(state: EngineState, seat: 0 | 1, cellIndex: number): ApplyRe
   }
 
   const next = clone(state);
+
+  // Void: placing without claiming kills pending sets from previous place
+  if (next.missMode === "void" && next.voidClaimOpen && next.pendingVoidSets.length > 0) {
+    next.voidedSets = voidSets(next.voidedSets, next.pendingVoidSets);
+  }
+  next.voidClaimOpen = false;
+  next.pendingVoidSets = [];
+
   next.board[cellIndex] = next.pieceInHand;
   next.pieceInHand = null;
   next.lastPlacerSeat = seat;
+  next.lastPlacedCell = cellIndex;
+
+  const wasFirst = !next.firstPlaceDone;
   next.firstPlaceDone = true;
 
-  // Stay in place_received briefly for declare; caller may declare or give next.
-  // Auto-advance to select_give for the placer (they give next piece).
   if (boardFull(next.board)) {
     next.phase = "finished";
     next.outcome = { type: "draw" };
@@ -181,6 +226,15 @@ function applyPlace(state: EngineState, seat: 0 | 1, cellIndex: number): ApplyRe
     return { ok: true, state: next, events: ["match_ended"] };
   }
 
+  if (shouldEnterPieChoice(next, wasFirst)) {
+    next.phase = "pie_choice";
+    next.turnSeat = seat;
+    next.turnNotifiedAt = new Date().toISOString();
+    next.pendingVoidSets = completedSetsThrough(next.board, cellIndex, next.modules);
+    return { ok: true, state: next, events: ["turn_changed"] };
+  }
+
+  next.pendingVoidSets = completedSetsThrough(next.board, cellIndex, next.modules);
   next.phase = "select_give";
   next.turnSeat = seat;
   next.turnNotifiedAt = new Date().toISOString();
@@ -188,21 +242,48 @@ function applyPlace(state: EngineState, seat: 0 | 1, cellIndex: number): ApplyRe
 }
 
 function applyDeclare(state: EngineState, seat: 0 | 1, setCells: number[]): ApplyResult {
-  // Legal only immediately after own place (lastPlacerSeat) while that seat still to give,
-  // or still holding the turn after place transition.
-  if (state.lastPlacerSeat !== seat) {
-    return { ok: false, error: "illegal_declare", state };
+  const next = clone(state);
+
+  // Persistent: only immediately after own place
+  if (next.missMode === "persistent") {
+    if (next.lastPlacerSeat !== seat) {
+      return { ok: false, error: "illegal_declare", state };
+    }
+    if (next.phase !== "select_give" && next.phase !== "pie_choice") {
+      return { ok: false, error: "illegal_declare", state };
+    }
+  } else {
+    // Void: placer after own place, OR receiver while voidClaimOpen before place
+    const placerWindow =
+      next.lastPlacerSeat === seat &&
+      (next.phase === "select_give" || next.phase === "pie_choice");
+    const receiverWindow =
+      next.voidClaimOpen &&
+      next.phase === "place_received" &&
+      next.turnSeat === seat &&
+      next.lastPlacerSeat !== seat;
+    if (!placerWindow && !receiverWindow) {
+      return { ok: false, error: "illegal_declare", state };
+    }
   }
-  if (state.phase !== "select_give" && state.phase !== "place_received") {
-    return { ok: false, error: "illegal_declare", state };
-  }
-  if (!isQuartoSet(state.board, setCells, state.modules)) {
+
+  if (
+    !canDeclareSet({
+      missMode: next.missMode,
+      board: next.board,
+      setCells,
+      lastPlacedCell: next.lastPlacedCell,
+      voidedSets: next.voidedSets,
+      modules: next.modules,
+    })
+  ) {
     return { ok: false, error: "illegal_declare", state };
   }
 
-  const next = clone(state);
   next.phase = "finished";
   next.outcome = { type: "win", winnerSeat: seat, declaredSet: [...setCells] };
   next.turnSeat = null;
+  next.voidClaimOpen = false;
+  next.pendingVoidSets = [];
   return { ok: true, state: next, events: ["match_ended"] };
 }

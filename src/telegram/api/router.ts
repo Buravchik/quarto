@@ -8,7 +8,7 @@ import {
   postCardHandler,
   postSlotHandler,
   rematchStub,
-  settingsStub,
+  settingsHandler,
 } from "./handlers";
 import { rateLimit } from "./rateLimit";
 
@@ -40,7 +40,7 @@ export function registerOpenApiStubs() {
   add("POST", "/api/v1/cards/:cardId/slots", postSlotHandler);
   add("GET", "/api/v1/sessions/:sessionId", getSessionHandler);
   add("POST", "/api/v1/sessions/:sessionId/join", joinHandler);
-  add("POST", "/api/v1/sessions/:sessionId/settings", settingsStub);
+  add("POST", "/api/v1/sessions/:sessionId/settings", settingsHandler);
   add("POST", "/api/v1/sessions/:sessionId/intent", intentHandler);
   add("POST", "/api/v1/sessions/:sessionId/rematch", rematchStub);
   add("GET", "/api/v1/me/achievements", achievementsStub);

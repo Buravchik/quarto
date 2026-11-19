@@ -10,6 +10,7 @@ import {
   joinSession,
   saveEngine,
   toSnapshot,
+  updateSessionSettings,
 } from "../sessions";
 
 loadEnvFile();
@@ -172,9 +173,32 @@ export async function getSessionHandler(
   }
 }
 
-export async function settingsStub(req: IncomingMessage, res: ServerResponse) {
-  void req;
-  sendJson(res, 501, { error: "not_implemented" });
+export async function settingsHandler(
+  req: IncomingMessage,
+  res: ServerResponse,
+  params: Record<string, string>,
+) {
+  try {
+    const body = await readJson<{
+      initData?: string;
+      missMode?: "persistent" | "void";
+      pieRule?: boolean;
+    }>(req);
+    const user = auth(body.initData);
+    const result = await updateSessionSettings(params.sessionId!, String(user.user.id), {
+      missMode: body.missMode,
+      pieRule: body.pieRule,
+    });
+    if ("error" in result) {
+      const code =
+        result.error === "not_found" ? 404 : result.error === "forbidden" ? 403 : 403;
+      return sendJson(res, code, { error: result.error });
+    }
+    const row = await getSession(params.sessionId!);
+    return sendJson(res, 200, row ? toSnapshot(row) : { ok: true });
+  } catch {
+    return sendJson(res, 401, { error: "invalid_init_data" });
+  }
 }
 
 export async function rematchStub(req: IncomingMessage, res: ServerResponse) {

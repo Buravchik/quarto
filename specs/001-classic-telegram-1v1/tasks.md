@@ -83,17 +83,17 @@ description: "Task list for Quarto classic Telegram 1v1"
 
 ### Tests for User Story 2
 
-- [ ] T024 [P] [US2] Unit tests Void/Persistent declare windows in `tests/unit/quarto/miss.test.ts`
-- [ ] T025 [P] [US2] Unit tests Pie take/pass after first place in `tests/unit/quarto/pie.test.ts`
-- [ ] T026 [P] [US2] Contract test settings lock on join in `tests/contract/api/settings.test.ts` (cite `data-model.md` `MatchSession.settingsLocked`, `missMode`, `pieRule`)
+- [x] T024 [P] [US2] Unit tests Void/Persistent declare windows in `tests/unit/quarto/miss.test.ts`
+- [x] T025 [P] [US2] Unit tests Pie take/pass after first place in `tests/unit/quarto/pie.test.ts`
+- [x] T026 [P] [US2] Contract test settings lock on join in `tests/contract/api/settings.test.ts` (cite `data-model.md` `MatchSession.settingsLocked`, `missMode`, `pieRule`)
 
 ### Implementation for User Story 2
 
-- [ ] T027 [P] [US2] Implement Miss Void/Persistent rules in `src/quarto/miss.ts` wired into engine
-- [ ] T028 [P] [US2] Implement Pie Rule phase in `src/quarto/pie.ts` wired into engine
-- [ ] T029 [US2] API `POST /sessions/:sessionId/settings` + lock on join in `src/telegram/api/` (openapi)
-- [ ] T030 [US2] Mini App Miss/Pie checkboxes (creator only, disabled when locked) in `src/components/`
-- [ ] T031 [US2] Persist `missMode`/`pieRule`/`voidedSets` and expose `pie_choice` intent (cite `data-model.md` `MatchSession.missMode`, `pieRule`, `voidedSets`)
+- [x] T027 [P] [US2] Implement Miss Void/Persistent rules in `src/quarto/miss.ts` wired into engine
+- [x] T028 [P] [US2] Implement Pie Rule phase in `src/quarto/pie.ts` wired into engine
+- [x] T029 [US2] API `POST /sessions/:sessionId/settings` + lock on join in `src/telegram/api/` (openapi)
+- [x] T030 [US2] Mini App Miss/Pie checkboxes (creator only, disabled when locked) in `src/components/`
+- [x] T031 [US2] Persist `missMode`/`pieRule`/`voidedSets` and expose `pie_choice` intent (cite `data-model.md` `MatchSession.missMode`, `pieRule`, `voidedSets`)
 
 **Checkpoint**: US1 + Miss/Pie session flags work
 

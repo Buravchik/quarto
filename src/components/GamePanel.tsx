@@ -3,11 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { Board } from "./Board";
 import { Pool } from "./Pool";
+import { Settings } from "./Settings";
 
 type Snapshot = {
   sessionId: string;
   status: string;
   phase: string;
+  missMode: "persistent" | "void";
+  pieRule: boolean;
+  settingsLocked: boolean;
   board: (string | null)[];
   pool: string[];
   pieceInHand: string | null;
@@ -22,12 +26,6 @@ type Props = {
   sessionId: string;
   initData: string;
 };
-
-declare global {
-  interface Window {
-    Telegram?: { WebApp?: { initData?: string; ready?: () => void } };
-  }
-}
 
 export function GamePanel({ apiBase, sessionId, initData }: Props) {
   const [session, setSession] = useState<Snapshot | null>(null);
@@ -73,6 +71,26 @@ export function GamePanel({ apiBase, sessionId, initData }: Props) {
     }
   }
 
+  async function saveSettings(next: { missMode: "persistent" | "void"; pieRule: boolean }) {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`${apiBase}/api/v1/sessions/${sessionId}/settings`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ initData, ...next }),
+      });
+      const data = (await res.json()) as Snapshot & { error?: string };
+      if (!res.ok) {
+        setError(data.error ?? `settings ${res.status}`);
+        return;
+      }
+      setSession(data);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function join() {
     setBusy(true);
     try {
@@ -108,7 +126,10 @@ export function GamePanel({ apiBase, sessionId, initData }: Props) {
 
   const canGive = session.phase === "select_give" && !session.pieceInHand;
   const canPlace = session.phase === "place_received" && !!session.pieceInHand;
-  const canDeclare = session.phase === "select_give" || session.phase === "place_received";
+  const canDeclare =
+    session.phase === "select_give" ||
+    session.phase === "place_received" ||
+    session.phase === "pie_choice";
 
   return (
     <section style={{ display: "grid", gap: "1rem" }}>
@@ -119,10 +140,29 @@ export function GamePanel({ apiBase, sessionId, initData }: Props) {
       </p>
       {error ? <p style={{ color: "#e07070", margin: 0 }}>{error}</p> : null}
 
+      <Settings
+        missMode={session.missMode ?? "persistent"}
+        pieRule={session.pieRule ?? false}
+        locked={session.settingsLocked}
+        disabled={busy || session.status !== "waiting"}
+        onChange={(next) => void saveSettings(next)}
+      />
+
       {session.status === "waiting" ? (
         <button type="button" disabled={busy} onClick={() => void join()}>
           Join as seat 1
         </button>
+      ) : null}
+
+      {session.phase === "pie_choice" ? (
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button type="button" disabled={busy} onClick={() => void sendIntent({ type: "pie_choice", pieTake: true })}>
+            Pie: take opening
+          </button>
+          <button type="button" disabled={busy} onClick={() => void sendIntent({ type: "pie_choice", pieTake: false })}>
+            Pie: pass
+          </button>
+        </div>
       ) : null}
 
       <Board
@@ -167,7 +207,11 @@ export function GamePanel({ apiBase, sessionId, initData }: Props) {
         </div>
       ) : null}
 
-      <button type="button" disabled={busy || session.status !== "active"} onClick={() => void sendIntent({ type: "resign" })}>
+      <button
+        type="button"
+        disabled={busy || session.status === "waiting" || session.status === "finished"}
+        onClick={() => void sendIntent({ type: "resign" })}
+      >
         Resign
       </button>
     </section>

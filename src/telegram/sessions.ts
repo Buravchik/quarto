@@ -11,19 +11,6 @@ import type { MissMode } from "../quarto/types";
 
 export type Seat = { telegramUserId: string; joinedAt: string } | null;
 
-export type SessionRow = {
-  sessionId: string;
-  cardId: string;
-  status: string;
-  missMode: MissMode;
-  pieRule: boolean;
-  modules: string[];
-  settingsLocked: boolean;
-  seat0: Seat;
-  seat1: Seat;
-  engine: EngineState;
-};
-
 function engineFromRow(row: typeof sessions.$inferSelect): EngineState {
   const base = createInitialState({
     modules: (row.modules as string[]) ?? ["classic4"],
@@ -42,8 +29,12 @@ function engineFromRow(row: typeof sessions.$inferSelect): EngineState {
     voidedSets: (row.voidedSets as number[][]) ?? [],
     outcome: (row.outcome as EngineState["outcome"]) ?? null,
     turnNotifiedAt: row.turnNotifiedAt ? row.turnNotifiedAt.toISOString() : null,
-    firstPlaceDone: false,
+    firstPlaceDone: row.firstPlaceDone ?? false,
+    pieResolved: row.pieResolved ?? false,
     lastPlacerSeat: (row.lastPlacerSeat as 0 | 1 | null) ?? null,
+    lastPlacedCell: row.lastPlacedCell ?? null,
+    voidClaimOpen: row.voidClaimOpen ?? false,
+    pendingVoidSets: (row.pendingVoidSets as number[][]) ?? [],
   };
 }
 
@@ -67,6 +58,7 @@ export function toSnapshot(row: typeof sessions.$inferSelect) {
     pieceInHand: engine.pieceInHand,
     turnNotifiedAt: engine.turnNotifiedAt,
     outcome: engine.outcome,
+    voidedSets: engine.voidedSets,
     traitCount: 4,
     cellCount: engine.board.length,
     boardLayoutId: "grid4x4",
@@ -101,6 +93,10 @@ export async function createSession(opts: {
     pool: engine.pool,
     pieceInHand: null,
     voidedSets: [],
+    pendingVoidSets: [],
+    firstPlaceDone: false,
+    pieResolved: false,
+    voidClaimOpen: false,
   });
   return sessionId;
 }
@@ -114,6 +110,30 @@ export async function getSession(sessionId: string) {
 export async function listSessionsForCard(cardId: string) {
   const db = getDb();
   return db.select().from(sessions).where(eq(sessions.cardId, cardId));
+}
+
+export async function updateSessionSettings(
+  sessionId: string,
+  userId: string,
+  patch: { missMode?: MissMode; pieRule?: boolean },
+) {
+  const row = await getSession(sessionId);
+  if (!row) return { error: "not_found" as const };
+  if (row.settingsLocked) return { error: "settings_locked" as const };
+  const seat0 = row.seat0 as Seat;
+  if (seat0?.telegramUserId !== userId) return { error: "forbidden" as const };
+  if (row.status !== "waiting") return { error: "settings_locked" as const };
+
+  const db = getDb();
+  await db
+    .update(sessions)
+    .set({
+      missMode: patch.missMode ?? row.missMode,
+      pieRule: patch.pieRule ?? row.pieRule,
+      updatedAt: new Date(),
+    })
+    .where(eq(sessions.sessionId, sessionId));
+  return { ok: true as const };
 }
 
 export async function joinSession(sessionId: string, userId: string) {
@@ -143,6 +163,8 @@ export async function joinSession(sessionId: string, userId: string) {
       pieceInHand: engine.pieceInHand,
       openerSeat: engine.openerSeat,
       turnSeat: engine.turnSeat,
+      pieResolved: engine.pieResolved,
+      firstPlaceDone: engine.firstPlaceDone,
       turnNotifiedAt: engine.turnNotifiedAt ? new Date(engine.turnNotifiedAt) : null,
       updatedAt: new Date(),
     })
@@ -153,6 +175,13 @@ export async function joinSession(sessionId: string, userId: string) {
 
 export async function saveEngine(sessionId: string, engine: EngineState, status?: string) {
   const db = getDb();
+  const statusOut =
+    status ??
+    (engine.phase === "finished"
+      ? "finished"
+      : engine.phase === "pie_choice"
+        ? "pie"
+        : "active");
   await db
     .update(sessions)
     .set({
@@ -163,12 +192,17 @@ export async function saveEngine(sessionId: string, engine: EngineState, status?
       turnSeat: engine.turnSeat,
       openerSeat: engine.openerSeat,
       lastPlacerSeat: engine.lastPlacerSeat,
+      lastPlacedCell: engine.lastPlacedCell,
+      firstPlaceDone: engine.firstPlaceDone,
+      pieResolved: engine.pieResolved,
+      voidClaimOpen: engine.voidClaimOpen,
+      pendingVoidSets: engine.pendingVoidSets,
       voidedSets: engine.voidedSets,
       outcome: engine.outcome,
       settingsLocked: engine.settingsLocked,
       missMode: engine.missMode,
       pieRule: engine.pieRule,
-      status: status ?? (engine.phase === "finished" ? "finished" : "active"),
+      status: statusOut,
       turnNotifiedAt: engine.turnNotifiedAt ? new Date(engine.turnNotifiedAt) : null,
       updatedAt: new Date(),
     })
