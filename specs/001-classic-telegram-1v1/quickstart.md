@@ -7,7 +7,7 @@ Prove the feature without implementing every UI polish item. Use two Telegram te
 - Node 22+, npm/pnpm
 - Bot token in env (`BOT_TOKEN`); Mini App URL HTTPS (`TELEGRAM_WEBAPP_URL`)
 - Supabase Free project with Postgres `DATABASE_URL` (or pooler URL)
-- Spec artifacts: [spec.md](./spec.md), [data-model.md](./data-model.md), [contracts/miniapp-api.md](./contracts/miniapp-api.md)
+- Spec artifacts: [spec.md](./spec.md), [data-model.md](./data-model.md), [contracts/openapi.yaml](./contracts/openapi.yaml), [contracts/miniapp-api.md](./contracts/miniapp-api.md)
 
 ## Setup (after implement)
 
