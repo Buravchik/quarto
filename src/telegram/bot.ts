@@ -59,7 +59,9 @@ if (bot) {
 const server = createServer(async (req, res) => {
   if (await handleApi(req, res)) return;
 
-  if (req.method === "POST" && req.url === "/telegram" && bot) {
+  const path = new URL(req.url ?? "/", "http://localhost").pathname;
+
+  if (req.method === "POST" && path === "/telegram" && bot) {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk as Buffer);
     const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -69,8 +71,10 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  if (req.url === "/healthz") {
+  // Prefer /health — /healthz is sometimes intercepted by Google Frontend on Cloud Run
+  if (path === "/health" || path === "/healthz" || path === "/") {
     res.statusCode = 200;
+    res.setHeader("content-type", "text/plain");
     res.end("ok");
     return;
   }
