@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Script from "next/script";
 
 export const metadata = {
   title: "Quarto",
@@ -9,7 +10,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
-        <script src="https://telegram.org/js/telegram-web-app.js" defer />
+        {/* beforeInteractive: available before hydration — avoids empty initData race */}
+        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
       </head>
       <body>{children}</body>
     </html>
