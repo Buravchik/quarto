@@ -71,11 +71,13 @@ npm run test:contract  # initData reject; seat isolation; slot cap; settings; re
 
 Live Telegram two-account smoke for A–G remains manual after deploy.
 
-API prod smoke (forged initData, no Telegram UI):
+API prod smoke (forged initData, quickstart A–G stand-ins):
 
 ```bash
 BOT_TOKEN=… node scripts/smoke-prod.mjs
 ```
+
+Manual two-account UI checklist: [docs/telegram-manual-smoke.md](../../docs/telegram-manual-smoke.md).
 
 ## Production host (Sudoku pattern)
 

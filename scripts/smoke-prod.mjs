@@ -1,6 +1,6 @@
 /**
- * Prod API smoke against Cloud Run using forged WebApp initData (HMAC).
- * Usage: BOT_TOKEN=... node scripts/smoke-prod.mjs
+ * Prod API smoke — quickstart A–G stand-ins against Cloud Run.
+ * Usage: BOT_TOKEN=… node scripts/smoke-prod.mjs
  * Optional: API_BASE=https://quarto-bot-….a.run.app
  */
 import { createHmac } from "node:crypto";
@@ -25,8 +25,7 @@ function makeInitData(user) {
     .join("\n");
   const secretKey = createHmac("sha256", "WebAppData").update(token).digest();
   const hash = createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
-  const params = new URLSearchParams({ ...fields, hash });
-  return params.toString();
+  return new URLSearchParams({ ...fields, hash }).toString();
 }
 
 async function req(method, path, body) {
@@ -45,49 +44,179 @@ async function req(method, path, body) {
   return { status: res.status, json };
 }
 
-const a = makeInitData({ id: 900001, first_name: "SmokeA", language_code: "en" });
-const b = makeInitData({ id: 900002, first_name: "SmokeB", language_code: "en" });
-
 const steps = [];
 function ok(name, pass, detail) {
   steps.push({ name, pass, detail });
   console.log(`${pass ? "OK" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}`);
 }
 
-const health = await req("GET", "/health");
-ok(
-  "GET /health",
-  health.status === 200 && (health.json?.raw === "ok" || health.json === "ok"),
-  `status=${health.status} body=${JSON.stringify(health.json)}`,
-);
+const a = makeInitData({ id: 910001, first_name: "SmokeA", language_code: "en" });
+const b = makeInitData({ id: 910002, first_name: "SmokeB", language_code: "en" });
 
-const bad = await req("GET", "/api/v1/sessions/x?initData=bad");
-ok("bad initData → 401", bad.status === 401, `status=${bad.status}`);
+{
+  const health = await req("GET", "/health");
+  ok("infra /health", health.status === 200 && health.json?.raw === "ok", String(health.status));
+  const bad = await req("GET", "/api/v1/sessions/x?initData=bad");
+  ok("infra bad initData 401", bad.status === 401, String(bad.status));
+}
 
-const created = await req("POST", "/api/v1/cards", {
-  initData: a,
-  surface: "dm",
-  missMode: "persistent",
-  pieRule: false,
-});
-ok("POST /cards", created.status === 201 && !!created.json.sessionId, JSON.stringify(created.json));
-const sessionId = created.json.sessionId;
+let sessionId;
+{
+  const created = await req("POST", "/api/v1/cards", {
+    initData: a,
+    surface: "dm",
+    missMode: "persistent",
+    pieRule: false,
+  });
+  ok("A create card", created.status === 201 && !!created.json.sessionId, JSON.stringify(created.json));
+  sessionId = created.json.sessionId;
 
-const joined = await req("POST", `/api/v1/sessions/${sessionId}/join`, { initData: b });
-ok("POST join seat1", joined.status === 200, `status=${joined.status}`);
+  const beforeJoin = await req("POST", `/api/v1/sessions/${sessionId}/settings`, {
+    initData: a,
+    missMode: "void",
+    pieRule: true,
+  });
+  ok("US2 settings before join", beforeJoin.status === 200, String(beforeJoin.status));
 
-const snap = await req("GET", `/api/v1/sessions/${sessionId}?initData=${encodeURIComponent(a)}`);
-ok("GET session", snap.status === 200 && snap.json.status === "active", `status=${snap.json.status}`);
+  const joined = await req("POST", `/api/v1/sessions/${sessionId}/join`, { initData: b });
+  ok("A join seat1", joined.status === 200, String(joined.status));
 
-const ach = await req("GET", `/api/v1/me/achievements?initData=${encodeURIComponent(a)}`);
-ok("GET achievements", ach.status === 200 && Array.isArray(ach.json.unlocked), JSON.stringify(ach.json));
+  const afterJoin = await req("POST", `/api/v1/sessions/${sessionId}/settings`, {
+    initData: a,
+    missMode: "persistent",
+    pieRule: false,
+  });
+  ok("US2 settings locked after join", afterJoin.status === 403, `status=${afterJoin.status}`);
 
-const pin = await req("POST", "/api/v1/me/achievements/pin", {
-  initData: a,
-  pinned: (ach.json.unlocked ?? []).slice(0, 2),
-});
-ok("POST pin", pin.status === 200 || pin.status === 400, `status=${pin.status} ${JSON.stringify(pin.json)}`);
+  const snap0 = await req(
+    "GET",
+    `/api/v1/sessions/${sessionId}?initData=${encodeURIComponent(a)}`,
+  );
+  const piece = snap0.json.pool?.[0];
+  ok(
+    "A session active + pool",
+    snap0.status === 200 && snap0.json.status === "active" && piece,
+    `phase=${snap0.json.phase} piece=${piece}`,
+  );
+
+  const give = await req("POST", `/api/v1/sessions/${sessionId}/intent`, {
+    initData: a,
+    type: "give",
+    pieceId: piece,
+  });
+  ok(
+    "A give",
+    give.status === 200 && give.json.session?.pieceInHand === piece,
+    `status=${give.status}`,
+  );
+
+  const place = await req("POST", `/api/v1/sessions/${sessionId}/intent`, {
+    initData: b,
+    type: "place",
+    cellIndex: 0,
+  });
+  ok(
+    "A place",
+    place.status === 200 && place.json.session?.board?.[0] === piece,
+    `status=${place.status}`,
+  );
+
+  const illegal = await req("POST", `/api/v1/sessions/${sessionId}/intent`, {
+    initData: b,
+    type: "declare",
+    setCells: [0, 1, 2, 3],
+  });
+  ok(
+    "B illegal declare",
+    illegal.status === 400 && illegal.json.error === "illegal_declare",
+    JSON.stringify(illegal.json),
+  );
+
+  const earlyTimeout = await req("POST", `/api/v1/sessions/${sessionId}/intent`, {
+    initData: a,
+    type: "claim_timeout",
+  });
+  ok(
+    "E timeout too early",
+    earlyTimeout.status === 409 && earlyTimeout.json.error === "timeout_too_early",
+    JSON.stringify(earlyTimeout.json),
+  );
+
+  const resign = await req("POST", `/api/v1/sessions/${sessionId}/intent`, {
+    initData: a,
+    type: "resign",
+  });
+  ok(
+    "A resign finish",
+    resign.status === 200 && resign.json.session?.status === "finished",
+    `status=${resign.json.session?.status}`,
+  );
+}
+
+{
+  const offer = await req("POST", `/api/v1/sessions/${sessionId}/rematch`, {
+    initData: a,
+    action: "offer",
+  });
+  ok("F rematch offer", offer.status === 200, JSON.stringify(offer.json));
+
+  const accept = await req("POST", `/api/v1/sessions/${sessionId}/rematch`, {
+    initData: b,
+    action: "accept",
+  });
+  ok(
+    "F rematch accept",
+    accept.status === 200 && !!accept.json.newSessionId,
+    JSON.stringify(accept.json),
+  );
+}
+
+{
+  const capCard = await req("POST", "/api/v1/cards", { initData: a, surface: "dm" });
+  const cid = capCard.json.cardId;
+  let last = { status: 0, json: {} };
+  for (let i = 0; i < 7; i++) {
+    last = await req("POST", `/api/v1/cards/${cid}/slots`, { initData: a });
+  }
+  ok("F fill to 8 slots", last.status === 201, `last=${last.status}`);
+  const ninth = await req("POST", `/api/v1/cards/${cid}/slots`, { initData: a });
+  ok(
+    "F slot_cap on 9th",
+    ninth.status === 409 && ninth.json.error === "slot_cap",
+    JSON.stringify(ninth.json),
+  );
+}
+
+{
+  const ach = await req(
+    "GET",
+    `/api/v1/me/achievements?initData=${encodeURIComponent(a)}`,
+  );
+  ok(
+    "G achievements",
+    ach.status === 200 && (ach.json.unlocked?.length ?? 0) >= 1,
+    JSON.stringify(ach.json),
+  );
+  const pinBad = await req("POST", "/api/v1/me/achievements/pin", {
+    initData: a,
+    pinned: ["first_match", "host", "rematch"],
+  });
+  ok(
+    "G pin max 2",
+    pinBad.status === 400 && pinBad.json.error === "pin_max",
+    JSON.stringify(pinBad.json),
+  );
+  const unlocked = ach.json.unlocked ?? [];
+  const pinOk = await req("POST", "/api/v1/me/achievements/pin", {
+    initData: a,
+    pinned: unlocked.slice(0, Math.min(2, unlocked.length)),
+  });
+  ok("G pin ok", pinOk.status === 200, JSON.stringify(pinOk.json));
+}
 
 const failed = steps.filter((s) => !s.pass);
 console.log(`\n${steps.length - failed.length}/${steps.length} passed`);
+if (failed.length) {
+  console.log("Failed:", failed.map((f) => f.name).join(", "));
+}
 process.exit(failed.length ? 1 : 0);
