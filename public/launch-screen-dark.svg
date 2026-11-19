@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Dark theme: light mark. Same Quarto silhouette as launch-screen.svg. -->
+  <g fill="#7EC8C4" fill-rule="evenodd">
+    <path d="M88 88H424V424H88ZM106 106V406H406V106Z"/>
+    <path d="M178 106H196V406H178ZM250 106H268V406H250ZM322 106H340V406H322Z"/>
+    <path d="M106 178H406V196H106ZM106 250H406V268H106ZM106 322H406V340H106Z"/>
+    <circle cx="142" cy="130" r="20"/>
+    <rect x="126" y="148" width="32" height="26" rx="5"/>
+    <path d="M232 142A18 18 0 1 1 232.01 142ZM232 152A8 8 0 1 0 232.01 152Z"/>
+    <rect x="216" y="160" width="32" height="14" rx="3"/>
+    <rect x="120" y="214" width="44" height="40" rx="4"/>
+    <path d="M214 220H258V256H214ZM222 228H250V248H222Z"/>
+  </g>
+</svg>
