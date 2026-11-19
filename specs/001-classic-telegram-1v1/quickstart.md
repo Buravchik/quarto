@@ -65,8 +65,10 @@ npm run dev            # or build+export Mini App to the configured URL
 ## Automated gate
 
 ```bash
-npm run test           # engine: lines, void/persistent windows, pie, illegal declare
-npm run test:contract  # initData reject; seat isolation; slot cap
+npm run test           # engine + quickstart_gate (A–G stand-ins) + contract
+npm run test:contract  # initData reject; seat isolation; slot cap; settings; rematch; pins
 ```
+
+Live Telegram two-account smoke for A–G remains manual after deploy (`TELEGRAM_WEBAPP_URL`, Docker bot webhook or polling).
 
 Engine tests MUST run with Telegram modules mocked or absent.

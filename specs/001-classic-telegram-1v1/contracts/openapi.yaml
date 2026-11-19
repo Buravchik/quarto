@@ -93,6 +93,27 @@ paths:
         '429':
           $ref: '#/components/responses/RateLimited'
 
+  /sessions/{sessionId}:
+    get:
+      tags: [sessions]
+      summary: Load session snapshot for Mini App resume
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/InitDataQuery'
+      responses:
+        '200':
+          description: Session snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionSnapshot'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
   /sessions/{sessionId}/join:
     post:
       tags: [sessions]

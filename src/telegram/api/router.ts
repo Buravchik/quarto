@@ -11,7 +11,7 @@ import {
   rematchHandler,
   settingsHandler,
 } from "./handlers";
-import { rateLimit } from "./rateLimit";
+import { rateLimit, rateLimitMutating } from "./rateLimit";
 
 type Handler = (
   req: IncomingMessage,
@@ -54,14 +54,16 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse): Prom
   if (!path.startsWith("/api/v1")) return false;
 
   const ip = req.socket.remoteAddress ?? "unknown";
-  if (!rateLimit(ip)) {
+  const method = (req.method ?? "GET").toUpperCase();
+  const limited =
+    method === "GET" || method === "HEAD" ? rateLimit(ip) : rateLimitMutating(ip);
+  if (!limited) {
     res.statusCode = 429;
     res.setHeader("content-type", "application/json");
     res.end(JSON.stringify({ error: "rate_limited" }));
     return true;
   }
 
-  const method = (req.method ?? "GET").toUpperCase();
   for (const route of routes) {
     if (route.method !== method) continue;
     const match = path.match(route.pattern);

@@ -16,6 +16,7 @@ import {
   type Seat,
 } from "../sessions";
 import { getCard } from "../cards";
+import { requireCreator, requireSeated } from "./seatAudit";
 
 loadEnvFile();
 
@@ -134,17 +135,13 @@ export async function intentHandler(
     if (!row) return sendJson(res, 404, { error: "not_found" });
 
     const uid = String(user.user.id);
-    const seat0 = row.seat0 as { telegramUserId: string } | null;
-    const seat1 = row.seat1 as { telegramUserId: string } | null;
-    let seat: 0 | 1 | null = null;
-    if (seat0?.telegramUserId === uid) seat = 0;
-    if (seat1?.telegramUserId === uid) seat = 1;
-    if (seat === null) return sendJson(res, 403, { error: "not_seated" });
+    const seated = requireSeated(row.seat0 as Seat, row.seat1 as Seat, uid);
+    if (!seated.ok) return sendJson(res, 403, { error: seated.error });
 
     if (!body.type) return sendJson(res, 400, { error: "illegal_move" });
     const intent = { type: body.type, ...body } as Intent;
     const engine = engineFromRow(row);
-    const result = applyIntent(engine, seat, intent);
+    const result = applyIntent(engine, seated.seat, intent);
     if (!result.ok) {
       if (result.error === "timeout_too_early") {
         return sendJson(res, 409, {
@@ -164,12 +161,10 @@ export async function intentHandler(
     }
     await saveEngine(params.sessionId!, result.state);
     if (result.events.includes("match_ended")) {
-      const seat0 = row.seat0 as Seat;
-      const seat1 = row.seat1 as Seat;
       const card = await getCard(row.cardId);
       await grantMatchUnlocks({
-        seat0UserId: seat0?.telegramUserId,
-        seat1UserId: seat1?.telegramUserId,
+        seat0UserId: (row.seat0 as Seat)?.telegramUserId,
+        seat1UserId: (row.seat1 as Seat)?.telegramUserId,
         outcome: result.state.outcome,
         pieRule: result.state.pieRule,
         pieResolved: result.state.pieResolved,
@@ -215,13 +210,16 @@ export async function settingsHandler(
       pieRule?: boolean;
     }>(req);
     const user = auth(body.initData);
+    const rowCheck = await getSession(params.sessionId!);
+    if (!rowCheck) return sendJson(res, 404, { error: "not_found" });
+    const creator = requireCreator(rowCheck.seat0 as Seat, String(user.user.id));
+    if (!creator.ok) return sendJson(res, 403, { error: creator.error });
     const result = await updateSessionSettings(params.sessionId!, String(user.user.id), {
       missMode: body.missMode,
       pieRule: body.pieRule,
     });
     if ("error" in result) {
-      const code =
-        result.error === "not_found" ? 404 : result.error === "forbidden" ? 403 : 403;
+      const code = result.error === "not_found" ? 404 : 403;
       return sendJson(res, code, { error: result.error });
     }
     const row = await getSession(params.sessionId!);

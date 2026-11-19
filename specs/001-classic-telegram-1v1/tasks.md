@@ -128,12 +128,12 @@ description: "Task list for Quarto classic Telegram 1v1"
 
 **Purpose**: i18n, modules hook readiness, deploy validation
 
-- [ ] T041 [P] Complete RU/EN coverage for bot + Mini App strings in `src/i18n/`
-- [ ] T042 [P] Document `GameModule` plug-in stub usage in `src/quarto/modules/README.md` (FR-019; no catalog modes)
-- [ ] T043 Rate-limit tuning + seat ownership audits on all mutating routes in `src/telegram/api/`
-- [ ] T044 Static export Mini App + Pages deploy workflow; webhook Docker path verified
-- [ ] T045 Run `quickstart.md` scenarios A–G against two test accounts; fix gaps
-- [ ] T046 [P] Ensure OpenAPI `contracts/openapi.yaml` matches implemented handlers
+- [x] T041 [P] Complete RU/EN coverage for bot + Mini App strings in `src/i18n/`
+- [x] T042 [P] Document `GameModule` plug-in stub usage in `src/quarto/modules/README.md` (FR-019; no catalog modes)
+- [x] T043 Rate-limit tuning + seat ownership audits on all mutating routes in `src/telegram/api/`
+- [x] T044 Static export Mini App + Pages deploy workflow; webhook Docker path verified
+- [x] T045 Run `quickstart.md` scenarios A–G against two test accounts; fix gaps
+- [x] T046 [P] Ensure OpenAPI `contracts/openapi.yaml` matches implemented handlers
 
 ---
 

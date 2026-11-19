@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { Markup, Telegraf } from "telegraf";
+import { t } from "../i18n";
 import { handleApi, registerOpenApiStubs } from "./api/router";
 import { cardView, createCard, formatCardMessage, setCardMessage } from "./cards";
 import { loadEnvFile } from "./http";
@@ -25,9 +26,8 @@ if (bot) {
   });
 
   bot.start(async (ctx) => {
-    await ctx.reply(
-      "Quarto — classic 1v1.\n/new — challenge card in this chat\nOpen Mini App from the card link to play.",
-    );
+    const copy = t(ctx.from?.language_code);
+    await ctx.reply(copy.startBlurb);
   });
 
   bot.command("new", async (ctx) => {
@@ -52,7 +52,7 @@ if (bot) {
   });
 
   bot.command("help", async (ctx) => {
-    await ctx.reply("Give a piece, place it, declare Quarto on a line of 4.");
+    await ctx.reply(t(ctx.from?.language_code).helpGivePlace);
   });
 }
 
