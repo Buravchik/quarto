@@ -1,5 +1,14 @@
-/** 24h stall after turnNotifiedAt before waiting seat may claim (FR-014). */
-export const TIMEOUT_MS = 24 * 60 * 60 * 1000;
+/** 8h stall after turnNotifiedAt before waiting seat may claim (008; amends 001 FR-014 window). */
+export const TIMEOUT_MS = 8 * 60 * 60 * 1000;
+
+export function formatTimeoutCountdown(retryAfterSeconds: number): string {
+  const s = Math.max(0, Math.floor(retryAfterSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${h}:${pad(m)}:${pad(sec)}`;
+}
 
 export function timeoutReady(
   turnNotifiedAt: string | null,

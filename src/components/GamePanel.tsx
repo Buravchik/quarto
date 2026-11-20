@@ -5,6 +5,7 @@ import { t } from "../i18n";
 import { decodeChannels } from "../pieces/decode";
 import { PieceToken } from "../pieces/PieceToken";
 import { derivePlaySurfaceState } from "../play/derivePlaySurfaceState";
+import { formatTimeoutCountdown, timeoutReady } from "../quarto/timeout";
 import { ExPrimaryButton, ExSecondaryButton, ExSurface } from "../theme/components";
 import { IconCheck, IconLink, IconPersonAdd, IconPlus, IconShare } from "../theme/icons";
 import { Board } from "./Board";
@@ -74,6 +75,7 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const refresh = useCallback(async () => {
     const url = `${apiBase}/api/v1/sessions/${sessionId}?initData=${encodeURIComponent(initData)}`;
@@ -98,6 +100,11 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
       document.removeEventListener("visibilitychange", onVis);
     };
   }, [refresh]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
 
   async function sendIntent(body: Record<string, unknown>) {
     setBusy(true);
@@ -405,19 +412,41 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
         </div>
       ) : null}
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
         <ExSecondaryButton
           disabled={busy || session.status === "waiting" || session.status === "finished"}
           onClick={() => void sendIntent({ type: "resign" })}
         >
           {copy.resign}
         </ExSecondaryButton>
-        <ExSecondaryButton
-          disabled={busy || session.status === "waiting" || session.status === "finished"}
-          onClick={() => void sendIntent({ type: "claim_timeout" })}
-        >
-          {copy.claimTimeout}
-        </ExSecondaryButton>
+        {(() => {
+          const waitingSeat =
+            surface.viewerSeat != null &&
+            session.turnSeat != null &&
+            surface.viewerSeat !== session.turnSeat &&
+            session.status !== "waiting" &&
+            session.status !== "finished";
+          if (!waitingSeat) return null;
+          const gate = timeoutReady(session.turnNotifiedAt, new Date(nowMs));
+          if (gate.ready) {
+            return (
+              <ExSecondaryButton
+                disabled={busy}
+                onClick={() => void sendIntent({ type: "claim_timeout" })}
+              >
+                {copy.claimTimeout}
+              </ExSecondaryButton>
+            );
+          }
+          return (
+            <p className="ex-muted" style={{ margin: 0, fontSize: "0.95rem" }}>
+              {copy.timeoutCountdown.replace(
+                "{time}",
+                formatTimeoutCountdown(gate.retryAfterSeconds),
+              )}
+            </p>
+          );
+        })()}
       </div>
 
       {session.status === "finished" ? (
