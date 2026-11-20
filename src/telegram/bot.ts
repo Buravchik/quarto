@@ -42,11 +42,23 @@ function playKeyboard(sessionId: string, langCode?: string) {
 
 if (bot) {
   setNotifyTransport({
-    editMessageText: async (chatId, messageId, text) => {
-      await bot.telegram.editMessageText(chatId, messageId, undefined, text);
+    editMessageText: async (chatId, messageId, text, extra) => {
+      await bot.telegram.editMessageText(
+        chatId,
+        messageId,
+        undefined,
+        text,
+        extra as Parameters<typeof bot.telegram.editMessageText>[4],
+      );
     },
-    editInlineMessageText: async (inlineMessageId, text) => {
-      await bot.telegram.editMessageText(undefined, undefined, inlineMessageId, text);
+    editInlineMessageText: async (inlineMessageId, text, extra) => {
+      await bot.telegram.editMessageText(
+        undefined,
+        undefined,
+        inlineMessageId,
+        text,
+        extra as Parameters<typeof bot.telegram.editMessageText>[4],
+      );
     },
     sendMessage: async (chatId, text, extra) => {
       await bot.telegram.sendMessage(

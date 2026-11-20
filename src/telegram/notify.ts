@@ -3,18 +3,25 @@ import { getDb } from "../../db/client";
 import { cards, players } from "../../db/schema";
 import { t } from "../i18n";
 import { timeoutReady } from "../quarto/timeout";
-import { cardView, formatCardMessage } from "./cards";
+import { cardView, formatCardMessage, preferredOpenSessionId } from "./cards";
 import { webAppOpenButton } from "./miniAppUrl";
 import { getSession, type Seat } from "./sessions";
 
+type ReplyMarkup = { reply_markup?: { inline_keyboard: Record<string, unknown>[][] } };
+
 export type NotifyTransport = {
-  editMessageText: (chatId: string, messageId: number, text: string) => Promise<void>;
-  editInlineMessageText: (inlineMessageId: string, text: string) => Promise<void>;
-  sendMessage: (
+  editMessageText: (
     chatId: string,
+    messageId: number,
     text: string,
-    extra?: { reply_markup?: { inline_keyboard: Record<string, unknown>[][] } },
+    extra?: ReplyMarkup,
   ) => Promise<void>;
+  editInlineMessageText: (
+    inlineMessageId: string,
+    text: string,
+    extra?: ReplyMarkup,
+  ) => Promise<void>;
+  sendMessage: (chatId: string, text: string, extra?: ReplyMarkup) => Promise<void>;
 };
 
 let transport: NotifyTransport | null = null;
@@ -38,6 +45,16 @@ async function langFor(userId: string | undefined): Promise<string> {
   }
 }
 
+function cardActionKeyboard(sessionId: string | undefined, lang?: string) {
+  const copy = t(lang);
+  const open = sessionId ? webAppOpenButton(copy.openMiniApp, sessionId) : null;
+  const drop = { text: copy.dropInChat, switch_inline_query: "" };
+  const rows: Record<string, unknown>[][] = [];
+  if (open) rows.push([open]);
+  rows.push([drop]);
+  return { reply_markup: { inline_keyboard: rows } };
+}
+
 async function refreshCardMessage(cardId: string) {
   if (!transport) return;
   const db = getDb();
@@ -48,11 +65,13 @@ async function refreshCardMessage(cardId: string) {
   if (!view) return;
   const lang = await langFor(card.ownerTelegramUserId);
   const text = formatCardMessage(view, lang);
+  const openSessionId = preferredOpenSessionId(view.slots);
+  const extra = cardActionKeyboard(openSessionId, lang);
   try {
     if (card.inlineMessageId) {
-      await transport.editInlineMessageText(card.inlineMessageId, text);
+      await transport.editInlineMessageText(card.inlineMessageId, text, extra);
     } else if (card.chatId && card.messageId != null) {
-      await transport.editMessageText(card.chatId, card.messageId, text);
+      await transport.editMessageText(card.chatId, card.messageId, text, extra);
     }
   } catch (err) {
     console.warn("card edit failed", err);
