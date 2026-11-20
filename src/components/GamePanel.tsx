@@ -8,7 +8,7 @@ import { derivePlaySurfaceState } from "../play/derivePlaySurfaceState";
 import { legalDeclareHintSets } from "../quarto/miss";
 import { formatTimeoutCountdown, timeoutReady } from "../quarto/timeout";
 import { ExPrimaryButton, ExSecondaryButton, ExSurface } from "../theme/components";
-import { IconCheck, IconLink, IconPersonAdd, IconReplay, IconShare } from "../theme/icons";
+import { IconPersonAdd, IconReplay, IconShare } from "../theme/icons";
 import { Board } from "./Board";
 import { Pool } from "./Pool";
 
@@ -314,16 +314,6 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
                   <IconReplay />
                 </ExSecondaryButton>
               ) : null}
-              <button
-                type="button"
-                className="ex-btn ex-icon-btn ex-icon-btn--ghost"
-                disabled={busy}
-                aria-label={copied ? copy.linkCopied : copy.shareDebugLink}
-                title={copied ? copy.linkCopied : copy.shareDebugLink}
-                onClick={() => void copyDebugLink()}
-              >
-                {copied ? <IconCheck /> : <IconLink />}
-              </button>
             </div>
           ) : null}
           {showJoinActions ? (
@@ -370,6 +360,16 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
           </p>
         ) : null}
       </ExSurface>
+      {showWaitActions ? (
+        <button
+          type="button"
+          className="ex-debug-link"
+          disabled={busy}
+          onClick={() => void copyDebugLink()}
+        >
+          {copied ? copy.linkCopied : copy.shareDebugLink}
+        </button>
+      ) : null}
       {error ? <p className="ex-error">{error}</p> : null}
 
       {surface.showPieControls ? (
