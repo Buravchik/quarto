@@ -13,7 +13,7 @@ export type NotifyTransport = {
   sendMessage: (
     chatId: string,
     text: string,
-    extra?: { reply_markup?: { inline_keyboard: unknown[][] } },
+    extra?: { reply_markup?: { inline_keyboard: Record<string, unknown>[][] } },
   ) => Promise<void>;
 };
 

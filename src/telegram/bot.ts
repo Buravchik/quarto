@@ -48,7 +48,11 @@ if (bot) {
       await bot.telegram.editMessageText(undefined, undefined, inlineMessageId, text);
     },
     sendMessage: async (chatId, text, extra) => {
-      await bot.telegram.sendMessage(chatId, text, extra);
+      await bot.telegram.sendMessage(
+        chatId,
+        text,
+        extra as Parameters<typeof bot.telegram.sendMessage>[2],
+      );
     },
   });
 
@@ -57,7 +61,7 @@ if (bot) {
     const openUrl = miniAppUrl();
     const rows = [];
     if (openUrl) {
-      rows.push([Markup.button.webApp(copy.openMiniAppStart ?? copy.openMiniApp, openUrl)]);
+      rows.push([Markup.button.webApp(copy.openMiniAppStart, openUrl)]);
     }
     rows.push([Markup.button.switchToChat(copy.dropInChat, "")]);
     await ctx.reply(copy.startBlurb, Markup.inlineKeyboard(rows));
