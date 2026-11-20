@@ -36,5 +36,5 @@ When `prefers-reduced-motion: reduce`: springs → short opacity/no overshoot; c
 ## Component expectations
 
 - Lobby, waiting, play, achievements share the same token set.
-- Primary actions use `--ex-primary` + emphasized shape; secondary actions quieter.
+- Primary actions use `--ex-primary` + emphasized shape + soft tonal elevation; secondary actions quieter. Do **not** use thick bottom-ledge “3D brick” shadows (see 005).
 - Raw browser default buttons and Georgia-as-only-type are out of contract for ship of 002 (brand may keep a display face, but Expressive shape/motion must dominate hierarchy).
