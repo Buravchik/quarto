@@ -48,10 +48,11 @@
     "typescript-eslint": "^8.44.0",
     "vitest": "^4.1.12"
   },
-  "//overrides": "drizzle-kit still declares deprecated @esbuild-kit/esm-loader but runtime uses tsx; stub drops the nested esbuild 0.18 advisory without downgrading drizzle-kit",
+  "//overrides": "1) stub unused @esbuild-kit/esm-loader under drizzle-kit (runtime uses tsx) to drop nested esbuild 0.18 advisory. 2) pin esbuild 0.28.2 so vite/tsx/drizzle-kit share one copy — avoids extraneous platform packages that break npm ci on Linux.",
   "overrides": {
     "drizzle-kit": {
       "@esbuild-kit/esm-loader": "npm:empty-npm-package@1.0.0"
-    }
+    },
+    "esbuild": "0.28.2"
   }
 }
