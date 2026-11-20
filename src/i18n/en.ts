@@ -26,6 +26,7 @@ export const en = {
   declareCells: "Declare cells",
   resign: "Resign",
   claimTimeout: "Claim timeout win",
+  timeoutCountdown: "Timeout claim in {time}",
   offerRematch: "Offer rematch",
   acceptRematch: "Accept rematch",
   declineRematch: "Decline",

@@ -37,7 +37,7 @@ describe("quickstart automated gate", () => {
     expect(typeof miss.canDeclareSet).toBe("function");
   });
 
-  it("E: timeout claim after 24h", () => {
+  it("E: timeout claim after 8h", () => {
     let s = startMatch(createInitialState(), 0);
     s.turnNotifiedAt = new Date(Date.now() - TIMEOUT_MS - 1).toISOString();
     const r = applyIntent(s, 1, { type: "claim_timeout" });

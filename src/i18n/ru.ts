@@ -26,6 +26,7 @@ export const ru = {
   declareCells: "Клетки объявления",
   resign: "Сдаться",
   claimTimeout: "Забрать победу по таймауту",
+  timeoutCountdown: "Таймаут через {time}",
   offerRematch: "Предложить реванш",
   acceptRematch: "Принять реванш",
   declineRematch: "Отклонить",
