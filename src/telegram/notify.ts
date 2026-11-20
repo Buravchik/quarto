@@ -1,21 +1,41 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "../../db/client";
-import { cards } from "../../db/schema";
+import { cards, players } from "../../db/schema";
 import { t } from "../i18n";
 import { timeoutReady } from "../quarto/timeout";
 import { cardView, formatCardMessage } from "./cards";
+import { webAppOpenButton } from "./miniAppUrl";
 import { getSession, type Seat } from "./sessions";
 
 export type NotifyTransport = {
   editMessageText: (chatId: string, messageId: number, text: string) => Promise<void>;
   editInlineMessageText: (inlineMessageId: string, text: string) => Promise<void>;
-  sendMessage: (chatId: string, text: string) => Promise<void>;
+  sendMessage: (
+    chatId: string,
+    text: string,
+    extra?: { reply_markup?: { inline_keyboard: unknown[][] } },
+  ) => Promise<void>;
 };
 
 let transport: NotifyTransport | null = null;
 
 export function setNotifyTransport(next: NotifyTransport | null) {
   transport = next;
+}
+
+async function langFor(userId: string | undefined): Promise<string> {
+  if (!userId) return "en";
+  try {
+    const db = getDb();
+    const rows = await db
+      .select()
+      .from(players)
+      .where(eq(players.telegramUserId, userId))
+      .limit(1);
+    return rows[0]?.language || "en";
+  } catch {
+    return "en";
+  }
 }
 
 async function refreshCardMessage(cardId: string) {
@@ -38,12 +58,42 @@ async function refreshCardMessage(cardId: string) {
   }
 }
 
-async function dm(userId: string | undefined, text: string) {
+async function dmWithOpen(userId: string | undefined, text: string, sessionId: string, lang?: string) {
   if (!transport || !userId) return;
+  const copy = t(lang);
+  const btn = webAppOpenButton(copy.openMiniApp, sessionId);
+  const extra = btn
+    ? { reply_markup: { inline_keyboard: [[btn]] } }
+    : undefined;
   try {
-    await transport.sendMessage(userId, text);
+    await transport.sendMessage(userId, text, extra);
   } catch (err) {
     console.warn("dm failed", err);
+  }
+}
+
+/** After Mini App lobby creates a card: DM starter the challenge card + web_app open. */
+export async function sendChallengeCardDm(opts: {
+  telegramUserId: string;
+  cardId: string;
+  sessionId: string;
+  lang?: string;
+}) {
+  if (!transport) return { ok: false as const, error: "no_transport" };
+  const view = await cardView(opts.cardId);
+  const text = view ? formatCardMessage(view) : `Quarto session ${opts.sessionId.slice(0, 8)}`;
+  const copy = t(opts.lang);
+  const btn = webAppOpenButton(copy.openMiniApp, opts.sessionId);
+  const drop = { text: copy.dropInChat, switch_inline_query: "" };
+  const keyboard = btn ? [[btn], [drop]] : [[drop]];
+  try {
+    await transport.sendMessage(opts.telegramUserId, text, {
+      reply_markup: { inline_keyboard: keyboard },
+    });
+    return { ok: true as const };
+  } catch (err) {
+    console.warn("sendChallengeCardDm failed", err);
+    return { ok: false as const, error: "dm_failed" };
   }
 }
 
@@ -51,8 +101,14 @@ export async function notifyOpponentJoined(sessionId: string) {
   const row = await getSession(sessionId);
   if (!row) return;
   const seat0 = row.seat0 as Seat;
-  const copy = t("en");
-  await dm(seat0?.telegramUserId, `${copy.opponentJoined}. Session ${sessionId.slice(0, 8)}`);
+  const lang = await langFor(seat0?.telegramUserId);
+  const copy = t(lang);
+  await dmWithOpen(
+    seat0?.telegramUserId,
+    `${copy.opponentJoined}. Session ${sessionId.slice(0, 8)}`,
+    sessionId,
+    lang,
+  );
   await refreshCardMessage(row.cardId);
 }
 
@@ -61,13 +117,15 @@ export async function notifyMatchEnded(sessionId: string) {
   if (!row) return;
   const seat0 = row.seat0 as Seat;
   const seat1 = row.seat1 as Seat;
-  const copy = t("en");
   const outcome = row.outcome as { type?: string; winnerSeat?: number } | null;
-  const summary = outcome
-    ? `${copy.matchEnded}: ${outcome.type}${outcome.winnerSeat != null ? ` (seat ${outcome.winnerSeat})` : ""}`
-    : copy.matchEnded;
-  await dm(seat0?.telegramUserId, summary);
-  await dm(seat1?.telegramUserId, summary);
+  for (const seat of [seat0, seat1]) {
+    const lang = await langFor(seat?.telegramUserId);
+    const copy = t(lang);
+    const summary = outcome
+      ? `${copy.matchEnded}: ${outcome.type}${outcome.winnerSeat != null ? ` (seat ${outcome.winnerSeat})` : ""}`
+      : copy.matchEnded;
+    await dmWithOpen(seat?.telegramUserId, summary, sessionId, lang);
+  }
   await refreshCardMessage(row.cardId);
 }
 
@@ -79,10 +137,12 @@ export async function notifyTurnChanged(sessionId: string) {
   const turn = row.turnSeat as 0 | 1 | null;
   const target = turn === 0 ? seat0 : turn === 1 ? seat1 : null;
   const waiting = turn === 0 ? seat1 : turn === 1 ? seat0 : null;
-  const copy = t("en");
-  await dm(target?.telegramUserId, copy.yourTurn);
+  const lang = await langFor(target?.telegramUserId);
+  const copy = t(lang);
+  await dmWithOpen(target?.telegramUserId, copy.yourTurn, sessionId, lang);
   if (timeoutReady(row.turnNotifiedAt ? row.turnNotifiedAt.toISOString() : null).ready) {
-    await dm(waiting?.telegramUserId, copy.timeoutAvailable);
+    const wLang = await langFor(waiting?.telegramUserId);
+    await dmWithOpen(waiting?.telegramUserId, t(wLang).timeoutAvailable, sessionId, wLang);
   }
   await refreshCardMessage(row.cardId);
 }
@@ -95,7 +155,8 @@ export async function notifyRematchOffered(sessionId: string) {
   const offer = row.rematchOffer as { offeredBy: string } | null;
   const other =
     offer?.offeredBy === seat0?.telegramUserId ? seat1?.telegramUserId : seat0?.telegramUserId;
-  await dm(other, t("en").rematchOffered);
+  const lang = await langFor(other);
+  await dmWithOpen(other, t(lang).rematchOffered, sessionId, lang);
   await refreshCardMessage(row.cardId);
 }
 

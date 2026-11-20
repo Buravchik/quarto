@@ -67,8 +67,9 @@ export default function HomePage() {
               appName: copy.appName,
               homeTagline: copy.homeTagline,
               startMatch: copy.startMatch,
-              homeHint: copy.homeHint,
+              homeHint: copy.cardSent,
               creating: copy.creating,
+              cardSent: copy.cardSent,
             }}
             onStarted={enterSession}
           />

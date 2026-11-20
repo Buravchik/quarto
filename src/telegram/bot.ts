@@ -11,6 +11,7 @@ import {
   setCardMessage,
 } from "./cards";
 import { loadEnvFile } from "./http";
+import { miniAppUrl } from "./miniAppUrl";
 import { setNotifyTransport } from "./notify";
 
 loadEnvFile();
@@ -18,24 +19,21 @@ registerOpenApiStubs();
 
 const token = process.env.BOT_TOKEN;
 const port = Number(process.env.PORT ?? 8080);
-const webapp = process.env.TELEGRAM_WEBAPP_URL;
 
 const bot = token ? new Telegraf(token) : null;
 
-/** Mini App origin with trailing slash; query params attach after /quarto/. */
-function miniAppUrl(sessionId?: string): string | undefined {
-  if (!webapp) return undefined;
-  const base = webapp.replace(/\/?$/, "/");
-  if (!sessionId) return base;
-  return `${base}?sessionId=${encodeURIComponent(sessionId)}`;
-}
+const ALLOWED_UPDATES = [
+  "message",
+  "callback_query",
+  "inline_query",
+  "chosen_inline_result",
+] as const;
 
 function playKeyboard(sessionId: string, langCode?: string) {
   const copy = t(langCode);
   const url = miniAppUrl(sessionId);
   if (!url) return undefined;
   return Markup.inlineKeyboard([
-    // webApp opens inside Telegram; url would open an external browser (↗)
     [Markup.button.webApp(copy.openMiniApp, url)],
     [Markup.button.switchToChat(copy.dropInChat, "")],
   ]);
@@ -49,17 +47,20 @@ if (bot) {
     editInlineMessageText: async (inlineMessageId, text) => {
       await bot.telegram.editMessageText(undefined, undefined, inlineMessageId, text);
     },
-    sendMessage: async (chatId, text) => {
-      await bot.telegram.sendMessage(chatId, text);
+    sendMessage: async (chatId, text, extra) => {
+      await bot.telegram.sendMessage(chatId, text, extra);
     },
   });
 
   bot.start(async (ctx) => {
     const copy = t(ctx.from?.language_code);
-    await ctx.reply(
-      copy.startBlurb,
-      Markup.inlineKeyboard([[Markup.button.switchToChat(copy.dropInChat, "")]]),
-    );
+    const openUrl = miniAppUrl();
+    const rows = [];
+    if (openUrl) {
+      rows.push([Markup.button.webApp(copy.openMiniAppStart ?? copy.openMiniApp, openUrl)]);
+    }
+    rows.push([Markup.button.switchToChat(copy.dropInChat, "")]);
+    await ctx.reply(copy.startBlurb, Markup.inlineKeyboard(rows));
   });
 
   bot.command("new", async (ctx) => {
@@ -81,9 +82,9 @@ if (bot) {
     await ctx.reply(t(ctx.from?.language_code).helpGivePlace);
   });
 
-  // Inline mode: @tgquarto_bot in any chat → drop a challenge card
   bot.on("inline_query", async (ctx) => {
     const copy = t(ctx.from.language_code);
+    const openUrl = miniAppUrl() ?? "https://t.me";
     await ctx.answerInlineQuery(
       [
         {
@@ -94,16 +95,8 @@ if (bot) {
           input_message_content: {
             message_text: copy.inlinePlaceholder,
           },
-          // reply_markup required so Telegram gives us inline_message_id on choose
           reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: copy.openMiniApp,
-                  web_app: { url: miniAppUrl() ?? "https://t.me" },
-                },
-              ],
-            ],
+            inline_keyboard: [[{ text: copy.openMiniApp, web_app: { url: openUrl } }]],
           },
         },
       ],
@@ -128,14 +121,7 @@ if (bot) {
         openUrl != null
           ? {
               reply_markup: {
-                inline_keyboard: [
-                  [
-                    {
-                      text: copy.openMiniApp,
-                      web_app: { url: openUrl },
-                    },
-                  ],
-                ],
+                inline_keyboard: [[{ text: copy.openMiniApp, web_app: { url: openUrl } }]],
               },
             }
           : undefined;
@@ -161,7 +147,6 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // Prefer /health — /healthz is sometimes intercepted by Google Frontend on Cloud Run
   if (path === "/health" || path === "/healthz" || path === "/") {
     res.statusCode = 200;
     res.setHeader("content-type", "text/plain");
@@ -180,20 +165,16 @@ server.listen(port, () => {
 const webhook = process.env.WEBHOOK_URL;
 if (bot && !webhook) {
   bot
-    .launch({
-      allowedUpdates: [
-        "message",
-        "callback_query",
-        "inline_query",
-        "chosen_inline_result",
-      ],
-    })
+    .launch({ allowedUpdates: [...ALLOWED_UPDATES] })
     .then(() => console.log("Telegraf long polling (incl. inline)"))
     .catch((err) => console.error("bot.launch failed", err));
   process.once("SIGINT", () => bot.stop("SIGINT"));
   process.once("SIGTERM", () => bot.stop("SIGTERM"));
 } else if (bot && webhook) {
-  console.log("Webhook mode: POST /telegram →", webhook);
+  bot.telegram
+    .setWebhook(webhook, { allowed_updates: [...ALLOWED_UPDATES] })
+    .then((ok) => console.log("setWebhook", ok, "→", webhook))
+    .catch((err) => console.error("setWebhook failed", err));
 } else {
   console.log("BOT_TOKEN missing — API only");
 }

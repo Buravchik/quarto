@@ -11,6 +11,7 @@ declare global {
         ready?: () => void;
         expand?: () => void;
         colorScheme?: "light" | "dark";
+        switchInlineQuery?: (query: string, chooseChatTypes?: string[]) => void;
       };
     };
   }
