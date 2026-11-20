@@ -208,7 +208,7 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   const labelFor = (id: string) => traitLabel(copy, id, moduleId);
 
   return (
-    <section style={{ display: "grid", gap: "1rem" }}>
+    <section style={{ display: "grid", gap: "0.75rem" }}>
       <ExSurface emphasized>
         <p className="ex-headline">{headline}</p>
         {session.outcome ? (
@@ -220,26 +220,37 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
       {error ? <p className="ex-error">{error}</p> : null}
 
       {session.status === "waiting" ? (
-        <div style={{ display: "grid", gap: "0.6rem" }}>
+        <div className="ex-waiting">
           {surface.expectedAction === "wait" && surface.viewerSeat === 0 ? (
             <>
-              <p className="ex-muted" style={{ margin: 0 }}>
-                {copy.waitingOpponent}
-              </p>
-              <ExPrimaryButton
-                disabled={busy}
-                onClick={() => {
-                  const tg = window.Telegram?.WebApp;
-                  if (tg && typeof tg.switchInlineQuery === "function") {
-                    tg.switchInlineQuery("");
-                    return;
-                  }
-                  setError(copy.cardSent);
-                }}
-              >
-                {copy.shareSession}
-              </ExPrimaryButton>
-              <ExSecondaryButton
+              <div className="ex-actions-row">
+                <ExPrimaryButton
+                  className="ex-btn--compact"
+                  disabled={busy}
+                  onClick={() => {
+                    const tg = window.Telegram?.WebApp;
+                    if (tg && typeof tg.switchInlineQuery === "function") {
+                      tg.switchInlineQuery("");
+                      return;
+                    }
+                    setError(copy.cardSent);
+                  }}
+                >
+                  {copy.shareSession}
+                </ExPrimaryButton>
+                {onLeave ? (
+                  <ExSecondaryButton
+                    className="ex-btn--compact"
+                    disabled={busy}
+                    onClick={onLeave}
+                  >
+                    {copy.backHome}
+                  </ExSecondaryButton>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                className="ex-link"
                 disabled={busy}
                 onClick={async () => {
                   const link = `${window.location.origin}${window.location.pathname}?sessionId=${sessionId}`;
@@ -253,18 +264,41 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
                 }}
               >
                 {copied ? copy.linkCopied : copy.shareDebugLink}
-              </ExSecondaryButton>
+              </button>
             </>
           ) : null}
           {surface.expectedAction === "join" ? (
-            <ExPrimaryButton disabled={busy} onClick={() => void join()}>
-              {copy.joinSeat1}
-            </ExPrimaryButton>
+            <div className="ex-actions-row">
+              <ExPrimaryButton
+                className="ex-btn--compact"
+                disabled={busy}
+                onClick={() => void join()}
+              >
+                {copy.joinSeat1}
+              </ExPrimaryButton>
+              {onLeave ? (
+                <ExSecondaryButton
+                  className="ex-btn--compact"
+                  disabled={busy}
+                  onClick={onLeave}
+                >
+                  {copy.backHome}
+                </ExSecondaryButton>
+              ) : null}
+            </div>
           ) : null}
-          {onLeave ? (
-            <ExSecondaryButton disabled={busy} onClick={onLeave}>
-              {copy.backHome}
-            </ExSecondaryButton>
+          {surface.expectedAction !== "wait" &&
+          surface.expectedAction !== "join" &&
+          onLeave ? (
+            <div className="ex-actions-row">
+              <ExSecondaryButton
+                className="ex-btn--compact"
+                disabled={busy}
+                onClick={onLeave}
+              >
+                {copy.backHome}
+              </ExSecondaryButton>
+            </div>
           ) : null}
         </div>
       ) : null}

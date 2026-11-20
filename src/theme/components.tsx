@@ -5,10 +5,11 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 export function ExPrimaryButton({
   children,
   className = "",
+  type = "button",
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode }) {
   return (
-    <button type="button" className={`ex-btn ex-btn--primary ${className}`.trim()} {...rest}>
+    <button type={type} className={`ex-btn ex-btn--primary ${className}`.trim()} {...rest}>
       {children}
     </button>
   );
@@ -17,10 +18,11 @@ export function ExPrimaryButton({
 export function ExSecondaryButton({
   children,
   className = "",
+  type = "button",
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode }) {
   return (
-    <button type="button" className={`ex-btn ex-btn--secondary ${className}`.trim()} {...rest}>
+    <button type={type} className={`ex-btn ex-btn--secondary ${className}`.trim()} {...rest}>
       {children}
     </button>
   );
