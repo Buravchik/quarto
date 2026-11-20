@@ -17,11 +17,34 @@ function loadEnv() {
   }
 }
 
+function migrationSqlFiles(): string[] {
+  const dir = path.resolve("db/migrations");
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .map((f) => path.join(dir, f));
+}
+
+async function runMigrations(client: pg.Client) {
+  for (const file of migrationSqlFiles()) {
+    const sql = fs.readFileSync(file, "utf8");
+    console.log("applying", path.basename(file));
+    await client.query(sql);
+  }
+  const tables = await client.query(
+    "select table_name from information_schema.tables where table_schema='public' order by 1",
+  );
+  console.log(
+    "tables:",
+    tables.rows.map((r) => r.table_name).join(", "),
+  );
+}
+
 async function main() {
   loadEnv();
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL missing");
-  const sql = fs.readFileSync(path.resolve("db/migrations/0001_init.sql"), "utf8");
 
   // Prefer direct host; Windows/Node sometimes fails IPv6-only db.* hosts — try resolved address.
   const u = new URL(url);
@@ -39,14 +62,7 @@ async function main() {
         ssl: { rejectUnauthorized: false },
       });
       await client.connect();
-      await client.query(sql);
-      const tables = await client.query(
-        "select table_name from information_schema.tables where table_schema='public' order by 1",
-      );
-      console.log(
-        "tables:",
-        tables.rows.map((r) => r.table_name).join(", "),
-      );
+      await runMigrations(client);
       await client.end();
       return;
     }
@@ -56,14 +72,7 @@ async function main() {
 
   const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
   await client.connect();
-  await client.query(sql);
-  const tables = await client.query(
-    "select table_name from information_schema.tables where table_schema='public' order by 1",
-  );
-  console.log(
-    "tables:",
-    tables.rows.map((r) => r.table_name).join(", "),
-  );
+  await runMigrations(client);
   await client.end();
 }
 
