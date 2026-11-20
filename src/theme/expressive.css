@@ -177,20 +177,46 @@ body {
   gap: 0.5rem;
 }
 
-.ex-waiting {
-  display: grid;
-  gap: 0.45rem;
-}
-
 .ex-waiting-head {
   position: relative;
   padding-inline-end: 2.35rem;
+}
+
+.ex-waiting-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.ex-waiting-headline {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ex-waiting-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .ex-waiting-corner {
   position: absolute;
   top: 0.55rem;
   inset-inline-end: 0.55rem;
+}
+
+/* Primary actions sit before the debug corner on the trailing edge. */
+.ex-waiting-head:has(.ex-waiting-actions) {
+  padding-inline-end: 0.75rem;
+}
+
+.ex-waiting-head:has(.ex-waiting-actions) .ex-waiting-row {
+  padding-inline-end: 1.85rem;
 }
 
 .ex-muted {

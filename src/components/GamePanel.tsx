@@ -243,8 +243,16 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   const labelFor = (id: string) => traitLabel(copy, id, moduleId);
 
   const showWaitingChrome = session.status === "waiting";
-  const showDebugCorner =
+  const showWaitActions =
     showWaitingChrome && surface.expectedAction === "wait" && surface.viewerSeat === 0;
+  const showJoinActions = showWaitingChrome && surface.expectedAction === "join";
+  const showLeaveOnly =
+    showWaitingChrome &&
+    surface.expectedAction !== "wait" &&
+    surface.expectedAction !== "join" &&
+    !!onLeave;
+  const showDebugCorner = showWaitActions;
+  const waitingOneRow = showWaitActions || showJoinActions || showLeaveOnly;
 
   const hintSets =
     surface.showDeclareControls && session.declareHints
@@ -273,32 +281,16 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
 
   return (
     <section style={{ display: "grid", gap: "0.75rem" }}>
-      <ExSurface emphasized className={showDebugCorner ? "ex-waiting-head" : undefined}>
-        <p className="ex-headline">{headline}</p>
-        {session.outcome ? (
-          <p className="ex-muted" style={{ margin: "0.35rem 0 0" }}>
-            {copy.matchEnded}: {session.outcome.type}
+      <ExSurface
+        emphasized
+        className={waitingOneRow || showDebugCorner ? "ex-waiting-head" : undefined}
+      >
+        <div className={waitingOneRow ? "ex-waiting-row" : undefined}>
+          <p className={`ex-headline${waitingOneRow ? " ex-waiting-headline" : ""}`}>
+            {headline}
           </p>
-        ) : null}
-        {showDebugCorner ? (
-          <button
-            type="button"
-            className="ex-btn ex-icon-btn ex-icon-btn--ghost ex-waiting-corner"
-            disabled={busy}
-            aria-label={copied ? copy.linkCopied : copy.shareDebugLink}
-            title={copied ? copy.linkCopied : copy.shareDebugLink}
-            onClick={() => void copyDebugLink()}
-          >
-            {copied ? <IconCheck /> : <IconLink />}
-          </button>
-        ) : null}
-      </ExSurface>
-      {error ? <p className="ex-error">{error}</p> : null}
-
-      {showWaitingChrome ? (
-        <div className="ex-waiting">
-          {surface.expectedAction === "wait" && surface.viewerSeat === 0 ? (
-            <div className="ex-actions-row">
+          {showWaitActions ? (
+            <div className="ex-waiting-actions">
               <ExPrimaryButton
                 className="ex-icon-btn"
                 disabled={busy}
@@ -328,8 +320,8 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
               ) : null}
             </div>
           ) : null}
-          {surface.expectedAction === "join" ? (
-            <div className="ex-actions-row">
+          {showJoinActions ? (
+            <div className="ex-waiting-actions">
               <ExPrimaryButton
                 className="ex-icon-btn"
                 disabled={busy}
@@ -352,10 +344,8 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
               ) : null}
             </div>
           ) : null}
-          {surface.expectedAction !== "wait" &&
-          surface.expectedAction !== "join" &&
-          onLeave ? (
-            <div className="ex-actions-row">
+          {showLeaveOnly ? (
+            <div className="ex-waiting-actions">
               <ExSecondaryButton
                 className="ex-icon-btn"
                 disabled={busy}
@@ -368,7 +358,25 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
             </div>
           ) : null}
         </div>
-      ) : null}
+        {session.outcome ? (
+          <p className="ex-muted" style={{ margin: "0.35rem 0 0" }}>
+            {copy.matchEnded}: {session.outcome.type}
+          </p>
+        ) : null}
+        {showDebugCorner ? (
+          <button
+            type="button"
+            className="ex-btn ex-icon-btn ex-icon-btn--ghost ex-waiting-corner"
+            disabled={busy}
+            aria-label={copied ? copy.linkCopied : copy.shareDebugLink}
+            title={copied ? copy.linkCopied : copy.shareDebugLink}
+            onClick={() => void copyDebugLink()}
+          >
+            {copied ? <IconCheck /> : <IconLink />}
+          </button>
+        ) : null}
+      </ExSurface>
+      {error ? <p className="ex-error">{error}</p> : null}
 
       {surface.showPieControls ? (
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
