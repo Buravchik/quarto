@@ -30,6 +30,20 @@ export function IconPlus(props: IconProps) {
   );
 }
 
+/** Restart / new-match (not “add”). */
+export function IconReplay(props: IconProps) {
+  const { title, rest } = base(props);
+  return (
+    <svg viewBox="0 0 24 24" width="1.25em" height="1.25em" aria-hidden={title ? undefined : true} {...rest}>
+      {title ? <title>{title}</title> : null}
+      <path
+        fill="currentColor"
+        d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"
+      />
+    </svg>
+  );
+}
+
 export function IconPersonAdd(props: IconProps) {
   const { title, rest } = base(props);
   return (

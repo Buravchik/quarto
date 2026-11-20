@@ -20,7 +20,7 @@ type Props = {
   }) => void;
 };
 
-/** Creator lobby Miss/Pie/hints checkboxes; hide after match start (GamePanel). */
+/** Creator lobby Miss/Pie/hints; collapsed by default (011). */
 export function Settings({
   missMode,
   pieRule,
@@ -32,53 +32,49 @@ export function Settings({
 }: Props) {
   const readOnly = locked || disabled;
   return (
-    <fieldset
-      disabled={readOnly}
-      className="ex-surface"
-      style={{ margin: 0 }}
-    >
-      <legend style={{ padding: "0 0.35rem", fontFamily: "var(--ex-font-display)" }}>
-        {labels.sessionRules}
-      </legend>
-      <label style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.4rem" }}>
-        <input
-          type="checkbox"
-          checked={missMode === "void"}
-          onChange={(e) =>
-            onChange({
-              missMode: e.target.checked ? "void" : "persistent",
-              pieRule,
-              declareHints,
-            })
-          }
-        />
-        {labels.missVoid}
-      </label>
-      <label style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.4rem" }}>
-        <input
-          type="checkbox"
-          checked={pieRule}
-          onChange={(e) =>
-            onChange({ missMode, pieRule: e.target.checked, declareHints })
-          }
-        />
-        {labels.pieRule}
-      </label>
-      <label style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-        <input
-          type="checkbox"
-          checked={declareHints}
-          onChange={(e) =>
-            onChange({ missMode, pieRule, declareHints: e.target.checked })
-          }
-        />
-        {labels.declareHints}
-      </label>
-      {locked ? (
-        <p className="ex-muted" style={{ margin: "0.5rem 0 0" }}>
-          {labels.settingsLocked}
-        </p>
-      ) : null}
-    </fieldset>
+    <details className="ex-surface ex-rules">
+      <summary className="ex-rules__summary">{labels.sessionRules}</summary>
+      <fieldset disabled={readOnly} className="ex-rules__body">
+        <label className="ex-rules__row">
+          <input
+            type="checkbox"
+            checked={missMode === "void"}
+            onChange={(e) =>
+              onChange({
+                missMode: e.target.checked ? "void" : "persistent",
+                pieRule,
+                declareHints,
+              })
+            }
+          />
+          {labels.missVoid}
+        </label>
+        <label className="ex-rules__row">
+          <input
+            type="checkbox"
+            checked={pieRule}
+            onChange={(e) =>
+              onChange({ missMode, pieRule: e.target.checked, declareHints })
+            }
+          />
+          {labels.pieRule}
+        </label>
+        <label className="ex-rules__row">
+          <input
+            type="checkbox"
+            checked={declareHints}
+            onChange={(e) =>
+              onChange({ missMode, pieRule, declareHints: e.target.checked })
+            }
+          />
+          {labels.declareHints}
+        </label>
+        {locked ? (
+          <p className="ex-muted" style={{ margin: "0.5rem 0 0" }}>
+            {labels.settingsLocked}
+          </p>
+        ) : null}
+      </fieldset>
+    </details>
   );
 }

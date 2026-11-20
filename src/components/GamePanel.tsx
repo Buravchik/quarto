@@ -8,7 +8,7 @@ import { derivePlaySurfaceState } from "../play/derivePlaySurfaceState";
 import { legalDeclareHintSets } from "../quarto/miss";
 import { formatTimeoutCountdown, timeoutReady } from "../quarto/timeout";
 import { ExPrimaryButton, ExSecondaryButton, ExSurface } from "../theme/components";
-import { IconCheck, IconLink, IconPersonAdd, IconPlus, IconShare } from "../theme/icons";
+import { IconCheck, IconLink, IconPersonAdd, IconReplay, IconShare } from "../theme/icons";
 import { Board } from "./Board";
 import { Pool } from "./Pool";
 
@@ -323,7 +323,7 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
                   title={copy.backHome}
                   onClick={onLeave}
                 >
-                  <IconPlus />
+                  <IconReplay />
                 </ExSecondaryButton>
               ) : null}
             </div>
@@ -347,7 +347,7 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
                   title={copy.backHome}
                   onClick={onLeave}
                 >
-                  <IconPlus />
+                  <IconReplay />
                 </ExSecondaryButton>
               ) : null}
             </div>
@@ -363,7 +363,7 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
                 title={copy.backHome}
                 onClick={onLeave}
               >
-                <IconPlus />
+                <IconReplay />
               </ExSecondaryButton>
             </div>
           ) : null}
