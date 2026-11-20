@@ -8,7 +8,6 @@ import { derivePlaySurfaceState } from "../play/derivePlaySurfaceState";
 import { ExPrimaryButton, ExSecondaryButton, ExSurface } from "../theme/components";
 import { Board } from "./Board";
 import { Pool } from "./Pool";
-import { Settings } from "./Settings";
 
 type Snapshot = {
   sessionId: string;
@@ -121,26 +120,6 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
     }
   }
 
-  async function saveSettings(next: { missMode: "persistent" | "void"; pieRule: boolean }) {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch(`${apiBase}/api/v1/sessions/${sessionId}/settings`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ initData, ...next }),
-      });
-      const data = (await res.json()) as Snapshot & { error?: string };
-      if (!res.ok) {
-        setError(data.error ?? `settings ${res.status}`);
-        return;
-      }
-      setSession(data);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function join() {
     setBusy(true);
     try {
@@ -239,16 +218,6 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
         ) : null}
       </ExSurface>
       {error ? <p className="ex-error">{error}</p> : null}
-
-      {session.status === "waiting" ? (
-        <Settings
-          missMode={session.missMode ?? "persistent"}
-          pieRule={session.pieRule ?? false}
-          locked={session.settingsLocked}
-          disabled={busy}
-          onChange={(next) => void saveSettings(next)}
-        />
-      ) : null}
 
       {session.status === "waiting" ? (
         <div style={{ display: "grid", gap: "0.6rem" }}>

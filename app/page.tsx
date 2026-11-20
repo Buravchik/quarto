@@ -70,26 +70,28 @@ export default function HomePage() {
               homeHint: copy.cardSent,
               creating: copy.creating,
               cardSent: copy.cardSent,
+              sessionRules: copy.sessionRules,
+              missVoid: copy.missVoid,
+              pieRule: copy.pieRule,
+              settingsLocked: copy.settingsLocked,
             }}
             onStarted={enterSession}
           />
           <AchievementsPanel apiBase={apiBase} initData={initData} lang={lang} />
         </>
       ) : (
-        <>
-          <GamePanel
-            apiBase={apiBase}
-            sessionId={sessionId}
-            initData={initData}
-            onLeave={() => {
-              setSessionId("");
-              const url = new URL(window.location.href);
-              url.searchParams.delete("sessionId");
-              window.history.replaceState({}, "", url.toString());
-            }}
-          />
-          <AchievementsPanel apiBase={apiBase} initData={initData} lang={lang} />
-        </>
+        <GamePanel
+          apiBase={apiBase}
+          sessionId={sessionId}
+          initData={initData}
+          onLeave={() => {
+            setSessionId("");
+            const url = new URL(window.location.href);
+            url.searchParams.delete("sessionId");
+            window.history.replaceState({}, "", url.toString());
+          }}
+        />
+
       )}
     </main>
   );
