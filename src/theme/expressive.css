@@ -301,3 +301,49 @@ body {
   background: color-mix(in srgb, var(--ex-secondary) 22%, var(--ex-surface-elevated));
   border: 1px solid color-mix(in srgb, var(--ex-secondary) 50%, var(--ex-outline));
 }
+
+.ex-rules {
+  margin: 0;
+}
+
+.ex-rules__summary {
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--ex-font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  user-select: none;
+}
+
+.ex-rules__summary::-webkit-details-marker {
+  display: none;
+}
+
+.ex-rules__summary::after {
+  content: "▾";
+  float: right;
+  opacity: 0.65;
+  transition: transform var(--ex-spring-standard);
+}
+
+.ex-rules:not([open]) .ex-rules__summary::after {
+  transform: rotate(-90deg);
+}
+
+.ex-rules__body {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+
+.ex-rules__row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.ex-rules__row:last-of-type {
+  margin-bottom: 0;
+}
