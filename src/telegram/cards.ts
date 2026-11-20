@@ -15,6 +15,7 @@ export async function createCard(opts: {
   chatId?: string;
   missMode?: MissMode;
   pieRule?: boolean;
+  declareHints?: boolean;
   displayName?: string;
   language?: string;
 }) {
@@ -33,6 +34,7 @@ export async function createCard(opts: {
     seat0UserId: opts.ownerTelegramUserId,
     missMode: opts.missMode,
     pieRule: opts.pieRule,
+    declareHints: opts.declareHints,
   });
   return { cardId, sessionId };
 }
@@ -64,6 +66,7 @@ export async function addSlot(opts: {
   ownerTelegramUserId: string;
   missMode?: MissMode;
   pieRule?: boolean;
+  declareHints?: boolean;
   displayName?: string;
 }) {
   const existing = await listSessionsForCard(opts.cardId);
@@ -76,6 +79,7 @@ export async function addSlot(opts: {
     seat0UserId: opts.ownerTelegramUserId,
     missMode: opts.missMode,
     pieRule: opts.pieRule,
+    declareHints: opts.declareHints,
   });
   return { sessionId };
 }
@@ -104,6 +108,7 @@ export async function cardView(cardId: string) {
       status: s.status,
       missMode: s.missMode,
       pieRule: s.pieRule,
+      declareHints: s.declareHints ?? false,
       modules: s.modules,
       seats: [seat0, seat1] as [Seat, Seat],
       seatLabels: [await seatLabel(seat0), await seatLabel(seat1)] as [string, string],
@@ -129,7 +134,7 @@ export function formatCardMessage(
   view.slots.forEach((slot, i) => {
     const a = slot.seatLabels?.[0] ?? "—";
     const b = slot.seatLabels?.[1] ?? "—";
-    let status = copy.cardStatusActive;
+    let status: string = copy.cardStatusActive;
     if (slot.status === "waiting") status = copy.cardStatusWaiting;
     else if (slot.status === "finished") status = copy.cardStatusFinished;
     else if (slot.status === "pie") status = copy.cardStatusActive;

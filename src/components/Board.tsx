@@ -8,6 +8,8 @@ type Props = {
   onCell?: (index: number) => void;
   disabled?: boolean;
   declareCells?: number[];
+  /** Soft highlight for legal hint lines (010). */
+  hintCells?: number[];
   /** When true, occupied cells stay clickable (declare selection). */
   selectableOccupied?: boolean;
   pieceLabel?: (pieceId: string) => string;
@@ -19,6 +21,7 @@ export function Board({
   onCell,
   disabled,
   declareCells = [],
+  hintCells = [],
   selectableOccupied = false,
   pieceLabel,
 }: Props) {
@@ -27,12 +30,13 @@ export function Board({
       {board.map((piece, i) => {
         const occupied = !!piece;
         const declaring = declareCells.includes(i);
+        const hinted = !declaring && hintCells.includes(i);
         const cellDisabled = disabled || (occupied && !selectableOccupied);
         return (
           <button
             key={i}
             type="button"
-            className={`ex-cell ${occupied ? "ex-cell--occupied" : ""} ${declaring ? "ex-cell--declare" : ""}`.trim()}
+            className={`ex-cell ${occupied ? "ex-cell--occupied" : ""} ${declaring ? "ex-cell--declare" : ""} ${hinted ? "ex-cell--hint" : ""}`.trim()}
             disabled={cellDisabled}
             onClick={() => onCell?.(i)}
             aria-label={occupied ? pieceLabel?.(piece!) ?? piece! : `Empty cell ${i + 1}`}

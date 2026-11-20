@@ -19,6 +19,7 @@ type Props = {
     sessionRules: string;
     missVoid: string;
     pieRule: string;
+    declareHints: string;
     settingsLocked: string;
   };
   onStarted: (sessionId: string) => void;
@@ -29,6 +30,7 @@ const PREVIEW_IDS = ["p0", "p5", "pa", "pf"] as const;
 export function HomeLobby({ apiBase, initData, copy, onStarted }: Props) {
   const [missMode, setMissMode] = useState<"persistent" | "void">("persistent");
   const [pieRule, setPieRule] = useState(false);
+  const [declareHints, setDeclareHints] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +50,7 @@ export function HomeLobby({ apiBase, initData, copy, onStarted }: Props) {
           surface: "dm",
           missMode,
           pieRule,
+          declareHints,
         }),
       });
       const data = (await res.json()) as {
@@ -58,7 +61,6 @@ export function HomeLobby({ apiBase, initData, copy, onStarted }: Props) {
         setError(data.error ?? `create ${res.status}`);
         return;
       }
-      // Card DM is sent by API; keep hint visible briefly via homeHint replacement in parent if needed
       onStarted(data.sessionId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "create failed");
@@ -84,17 +86,20 @@ export function HomeLobby({ apiBase, initData, copy, onStarted }: Props) {
       <Settings
         missMode={missMode}
         pieRule={pieRule}
+        declareHints={declareHints}
         locked={false}
         disabled={busy}
         labels={{
           sessionRules: copy.sessionRules,
           missVoid: copy.missVoid,
           pieRule: copy.pieRule,
+          declareHints: copy.declareHints,
           settingsLocked: copy.settingsLocked,
         }}
         onChange={(next) => {
           setMissMode(next.missMode);
           setPieRule(next.pieRule);
+          setDeclareHints(next.declareHints);
         }}
       />
 

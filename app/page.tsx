@@ -73,6 +73,7 @@ export default function HomePage() {
               sessionRules: copy.sessionRules,
               missVoid: copy.missVoid,
               pieRule: copy.pieRule,
+              declareHints: copy.declareHints,
               settingsLocked: copy.settingsLocked,
             }}
             onStarted={enterSession}

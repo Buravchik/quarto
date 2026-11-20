@@ -12,6 +12,7 @@ const baseView = {
       status: "waiting",
       missMode: "persistent",
       pieRule: false,
+      declareHints: false,
       modules: ["classic4"],
       seats: [{ telegramUserId: "1", joinedAt: "" }, null] as [
         { telegramUserId: string; joinedAt: string } | null,

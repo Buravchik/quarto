@@ -47,6 +47,7 @@ export function toSnapshot(row: typeof sessions.$inferSelect) {
     phase: engine.phase,
     missMode: row.missMode,
     pieRule: row.pieRule,
+    declareHints: row.declareHints ?? false,
     settingsLocked: row.settingsLocked,
     modules: row.modules,
     seat0: row.seat0,
@@ -59,6 +60,8 @@ export function toSnapshot(row: typeof sessions.$inferSelect) {
     turnNotifiedAt: engine.turnNotifiedAt,
     outcome: engine.outcome,
     voidedSets: engine.voidedSets,
+    pendingVoidSets: engine.pendingVoidSets,
+    lastPlacedCell: engine.lastPlacedCell,
     traitCount: 4,
     cellCount: engine.board.length,
     boardLayoutId: "grid4x4",
@@ -70,6 +73,7 @@ export async function createSession(opts: {
   seat0UserId: string;
   missMode?: MissMode;
   pieRule?: boolean;
+  declareHints?: boolean;
 }): Promise<string> {
   const db = getDb();
   const engine = createInitialState({
@@ -84,6 +88,7 @@ export async function createSession(opts: {
     status: "waiting",
     missMode: engine.missMode,
     pieRule: engine.pieRule,
+    declareHints: opts.declareHints ?? false,
     modules: engine.modules,
     settingsLocked: false,
     seat0: { telegramUserId: opts.seat0UserId, joinedAt: now },
@@ -115,7 +120,7 @@ export async function listSessionsForCard(cardId: string) {
 export async function updateSessionSettings(
   sessionId: string,
   userId: string,
-  patch: { missMode?: MissMode; pieRule?: boolean },
+  patch: { missMode?: MissMode; pieRule?: boolean; declareHints?: boolean },
 ) {
   const row = await getSession(sessionId);
   if (!row) return { error: "not_found" as const };
@@ -130,6 +135,7 @@ export async function updateSessionSettings(
     .set({
       missMode: patch.missMode ?? row.missMode,
       pieRule: patch.pieRule ?? row.pieRule,
+      declareHints: patch.declareHints ?? row.declareHints,
       updatedAt: new Date(),
     })
     .where(eq(sessions.sessionId, sessionId));
@@ -225,6 +231,7 @@ export async function rematchAction(
     seat0UserId: seat0.telegramUserId,
     missMode: row.missMode as MissMode,
     pieRule: row.pieRule,
+    declareHints: row.declareHints ?? false,
   });
   const joined = await joinSession(newSessionId, seat1.telegramUserId);
   if ("error" in joined) return { error: "forbidden" as const };
