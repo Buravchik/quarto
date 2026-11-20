@@ -26,17 +26,21 @@ export function AchievementsPanel({ apiBase, initData, lang }: Props) {
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
-    const res = await fetch(
-      `${apiBase}/api/v1/me/achievements?initData=${encodeURIComponent(initData)}`,
-    );
-    if (!res.ok) {
-      setError(`achievements ${res.status}`);
-      return;
+    try {
+      const res = await fetch(
+        `${apiBase}/api/v1/me/achievements?initData=${encodeURIComponent(initData)}`,
+      );
+      if (!res.ok) {
+        setError(`achievements ${res.status}`);
+        return;
+      }
+      const data = (await res.json()) as { unlocked: string[]; pinned: string[] };
+      setUnlocked(data.unlocked ?? []);
+      setPinned(data.pinned ?? []);
+      setError(null);
+    } catch {
+      setError("achievements_network");
     }
-    const data = (await res.json()) as { unlocked: string[]; pinned: string[] };
-    setUnlocked(data.unlocked ?? []);
-    setPinned(data.pinned ?? []);
-    setError(null);
   }, [apiBase, initData]);
 
   useEffect(() => {
