@@ -49,8 +49,8 @@
     "vitest": "^4.1.12"
   },
   "overrides": {
-    "@esbuild-kit/core-utils": {
-      "esbuild": "0.25.12"
+    "drizzle-kit": {
+      "@esbuild-kit/esm-loader": "npm:empty-npm-package@1.0.0"
     }
   }
 }
