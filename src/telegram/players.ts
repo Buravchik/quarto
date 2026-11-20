@@ -7,6 +7,25 @@ import {
   validatePins,
   type MatchOutcome,
 } from "../quarto/achievements";
+import type { TelegramWebAppUser } from "./initData";
+
+/** Human-readable label from Telegram identity (never prefer bare id when name exists). */
+export function displayNameFromTelegram(user: {
+  id?: number | string;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+}): string {
+  const full = [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
+  if (full) return full;
+  if (user.username?.trim()) return `@${user.username.trim()}`;
+  if (user.id != null && String(user.id)) return String(user.id);
+  return "";
+}
+
+export function displayNameFromInitUser(user: TelegramWebAppUser): string {
+  return displayNameFromTelegram(user);
+}
 
 export async function ensurePlayer(telegramUserId: string, displayName = "") {
   const db = getDb();
@@ -15,10 +34,20 @@ export async function ensurePlayer(telegramUserId: string, displayName = "") {
     .from(players)
     .where(eq(players.telegramUserId, telegramUserId))
     .limit(1);
-  if (existing[0]) return existing[0];
+  if (existing[0]) {
+    const next = displayName.trim();
+    if (next && next !== existing[0].displayName) {
+      await db
+        .update(players)
+        .set({ displayName: next, updatedAt: new Date() })
+        .where(eq(players.telegramUserId, telegramUserId));
+      return { ...existing[0], displayName: next };
+    }
+    return existing[0];
+  }
   await db.insert(players).values({
     telegramUserId,
-    displayName,
+    displayName: displayName.trim(),
     achievementIds: [],
     pinnedAchievementIds: [],
   });

@@ -14,10 +14,11 @@ export async function createCard(opts: {
   chatId?: string;
   missMode?: MissMode;
   pieRule?: boolean;
+  displayName?: string;
 }) {
   const db = getDb();
   const cardId = randomUUID();
-  await ensurePlayer(opts.ownerTelegramUserId);
+  await ensurePlayer(opts.ownerTelegramUserId, opts.displayName ?? "");
   await grantAchievements(opts.ownerTelegramUserId, ["host"]);
   await db.insert(cards).values({
     cardId,
@@ -61,11 +62,13 @@ export async function addSlot(opts: {
   ownerTelegramUserId: string;
   missMode?: MissMode;
   pieRule?: boolean;
+  displayName?: string;
 }) {
   const existing = await listSessionsForCard(opts.cardId);
   if (existing.length >= SLOT_CAP) {
     return { error: "slot_cap" as const, max: SLOT_CAP };
   }
+  await ensurePlayer(opts.ownerTelegramUserId, opts.displayName ?? "");
   const sessionId = await createSession({
     cardId: opts.cardId,
     seat0UserId: opts.ownerTelegramUserId,
@@ -77,10 +80,12 @@ export async function addSlot(opts: {
 
 async function seatLabel(seat: Seat): Promise<string> {
   if (!seat?.telegramUserId) return "—";
+  const row = await ensurePlayer(seat.telegramUserId);
+  const name = row.displayName?.trim() || seat.telegramUserId;
   const ach = await getAchievements(seat.telegramUserId);
   const pins = (ach.pinned as string[]).slice(0, 2);
   const pinTxt = pins.length ? ` [${pins.join(",")}]` : "";
-  return `${seat.telegramUserId}${pinTxt}`;
+  return `${name}${pinTxt}`;
 }
 
 export async function cardView(cardId: string) {
@@ -116,8 +121,8 @@ export async function cardView(cardId: string) {
 export function formatCardMessage(view: NonNullable<Awaited<ReturnType<typeof cardView>>>): string {
   const lines = [`Quarto · ${view.cardId.slice(0, 8)}`, `Surface: ${view.surface}`, ""];
   view.slots.forEach((slot, i) => {
-    const a = slot.seatLabels?.[0] ?? slot.seats[0]?.telegramUserId ?? "—";
-    const b = slot.seatLabels?.[1] ?? (slot.seats[1]?.telegramUserId ? slot.seats[1].telegramUserId : "waiting");
+    const a = slot.seatLabels?.[0] ?? "—";
+    const b = slot.seatLabels?.[1] ?? "—";
     const turn =
       slot.status === "active" && slot.turnSeat != null ? ` · turn seat ${slot.turnSeat}` : "";
     lines.push(`${i + 1}. ${slot.status}${turn} · ${a} vs ${b}`);

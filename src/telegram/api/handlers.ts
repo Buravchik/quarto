@@ -4,7 +4,14 @@ import { addSlot, cardView, createCard, SLOT_CAP } from "../cards";
 import { loadEnvFile, readJson, sendJson } from "../http";
 import { validateInitData } from "../initData";
 import { dispatchSessionEvents } from "../notify";
-import { getAchievements, grantAchievements, grantMatchUnlocks, pinAchievements } from "../players";
+import {
+  displayNameFromInitUser,
+  ensurePlayer,
+  getAchievements,
+  grantAchievements,
+  grantMatchUnlocks,
+  pinAchievements,
+} from "../players";
 import {
   engineFromRow,
   getSession,
@@ -56,11 +63,13 @@ export async function postCardHandler(req: IncomingMessage, res: ServerResponse)
       surface?: "group" | "dm";
     }>(req);
     const user = auth(body.initData);
+    const displayName = displayNameFromInitUser(user.user);
     const created = await createCard({
       ownerTelegramUserId: String(user.user.id),
       surface: body.surface ?? "dm",
       missMode: body.missMode,
       pieRule: body.pieRule,
+      displayName,
     });
     // Mini App lobby start → Telegram-native card DM (not orphan session)
     const { sendChallengeCardDm } = await import("../notify");
@@ -94,6 +103,7 @@ export async function postSlotHandler(
       ownerTelegramUserId: String(user.user.id),
       missMode: body.missMode,
       pieRule: body.pieRule,
+      displayName: displayNameFromInitUser(user.user),
     });
     if ("error" in result) {
       return sendJson(res, 409, { error: result.error, max: SLOT_CAP });
@@ -112,6 +122,7 @@ export async function joinHandler(
   try {
     const body = await readJson<{ initData?: string }>(req);
     const user = auth(body.initData);
+    await ensurePlayer(String(user.user.id), displayNameFromInitUser(user.user));
     const result = await joinSession(params.sessionId!, String(user.user.id));
     if ("error" in result) {
       const code = result.error === "not_found" ? 404 : 409;
