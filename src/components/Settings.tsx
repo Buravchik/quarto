@@ -14,9 +14,12 @@ export function Settings({ missMode, pieRule, locked, disabled, onChange }: Prop
   return (
     <fieldset
       disabled={readOnly}
-      style={{ border: "1px solid #335", padding: "0.75rem", margin: 0 }}
+      className="ex-surface"
+      style={{ margin: 0 }}
     >
-      <legend style={{ padding: "0 0.35rem" }}>Session rules</legend>
+      <legend style={{ padding: "0 0.35rem", fontFamily: "var(--ex-font-display)" }}>
+        Session rules
+      </legend>
       <label style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.4rem" }}>
         <input
           type="checkbox"
@@ -35,7 +38,11 @@ export function Settings({ missMode, pieRule, locked, disabled, onChange }: Prop
         />
         Pie Rule — take/pass after first place
       </label>
-      {locked ? <p style={{ margin: "0.5rem 0 0", opacity: 0.7 }}>Locked after join</p> : null}
+      {locked ? (
+        <p className="ex-muted" style={{ margin: "0.5rem 0 0" }}>
+          Locked after join
+        </p>
+      ) : null}
     </fieldset>
   );
 }

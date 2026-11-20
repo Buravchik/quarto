@@ -1,0 +1,226 @@
+/* Material 3 Expressive tokens — CSS only, no MUI */
+
+:root,
+[data-ex-scheme="dark"] {
+  --ex-surface: #0b1520;
+  --ex-surface-elevated: #122430;
+  --ex-on-surface: #e8f0f2;
+  --ex-on-surface-muted: rgba(232, 240, 242, 0.72);
+  --ex-primary: #c9a227;
+  --ex-on-primary: #0b1520;
+  --ex-secondary: #2a9d8f;
+  --ex-outline: #3a5560;
+  --ex-danger: #e07070;
+  --ex-empty-cell: #0d1b24;
+  --ex-piece-light: #f2e6c9;
+  --ex-piece-dark: #1a2e38;
+  --ex-piece-stroke: #8eb8b0;
+  --ex-radius-sm: 0.5rem;
+  --ex-radius-md: 1rem;
+  --ex-radius-lg: 1.75rem;
+  --ex-radius-xl: 2.5rem;
+  --ex-radius-emphasized: 1.75rem 0.5rem 1.75rem 0.5rem;
+  --ex-spring-emphasized: 280ms cubic-bezier(0.34, 1.45, 0.64, 1);
+  --ex-spring-standard: 200ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  --ex-font-display: "Outfit", "Segoe UI", sans-serif;
+  --ex-font-body: "Source Sans 3", "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+
+[data-ex-scheme="light"] {
+  --ex-surface: #eef6f5;
+  --ex-surface-elevated: #ffffff;
+  --ex-on-surface: #102028;
+  --ex-on-surface-muted: rgba(16, 32, 40, 0.7);
+  --ex-primary: #a67c00;
+  --ex-on-primary: #fff8e7;
+  --ex-secondary: #1b7a6e;
+  --ex-outline: #9bb0b6;
+  --ex-danger: #c04040;
+  --ex-empty-cell: #d5e4e2;
+  --ex-piece-light: #fff8e7;
+  --ex-piece-dark: #243840;
+  --ex-piece-stroke: #1b7a6e;
+  color-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ex-spring-emphasized: 120ms linear;
+    --ex-spring-standard: 80ms linear;
+  }
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--ex-surface);
+  color: var(--ex-on-surface);
+  font-family: var(--ex-font-body);
+}
+
+.ex-app {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 1.25rem 1.1rem 2rem;
+  background:
+    radial-gradient(ellipse 90% 55% at 12% -10%, rgba(42, 157, 143, 0.35), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 95% 5%, rgba(201, 162, 39, 0.18), transparent 50%),
+    var(--ex-surface);
+  color: var(--ex-on-surface);
+  font-family: var(--ex-font-body);
+}
+
+.ex-brand {
+  margin: 0 0 0.85rem;
+  font-family: var(--ex-font-display);
+  font-size: clamp(2.4rem, 9vw, 3.2rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+}
+
+.ex-surface {
+  background: color-mix(in srgb, var(--ex-surface-elevated) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ex-outline) 55%, transparent);
+  border-radius: var(--ex-radius-lg);
+  padding: 1rem 1.05rem;
+}
+
+.ex-surface--emphasized {
+  border-radius: var(--ex-radius-emphasized);
+}
+
+.ex-btn {
+  font-family: var(--ex-font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0.75rem 1.05rem;
+  border: none;
+  border-radius: var(--ex-radius-md);
+  cursor: pointer;
+  transition:
+    transform var(--ex-spring-emphasized),
+    box-shadow var(--ex-spring-standard),
+    background-color var(--ex-spring-standard);
+}
+
+.ex-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ex-btn--primary {
+  background: var(--ex-primary);
+  color: var(--ex-on-primary);
+  border-radius: var(--ex-radius-emphasized);
+  box-shadow: 0 0.35rem 0 color-mix(in srgb, var(--ex-primary) 45%, #000);
+}
+
+.ex-btn--primary:not(:disabled):active {
+  transform: translateY(0.15rem) scale(0.97);
+  box-shadow: 0 0.1rem 0 color-mix(in srgb, var(--ex-primary) 45%, #000);
+}
+
+.ex-btn--secondary {
+  background: transparent;
+  color: var(--ex-on-surface);
+  border: 1px solid var(--ex-outline);
+  border-radius: var(--ex-radius-md);
+}
+
+.ex-btn--secondary:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.ex-muted {
+  color: var(--ex-on-surface-muted);
+}
+
+.ex-error {
+  color: var(--ex-danger);
+  margin: 0;
+}
+
+.ex-headline {
+  margin: 0;
+  font-family: var(--ex-font-display);
+  font-size: 1.2rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.ex-piece-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.ex-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(3.1rem, 1fr));
+  gap: 0.4rem;
+  max-width: 16rem;
+}
+
+.ex-cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ex-outline);
+  border-radius: var(--ex-radius-sm);
+  background: var(--ex-empty-cell);
+  padding: 0.15rem;
+  cursor: pointer;
+  transition: transform var(--ex-spring-standard), border-color var(--ex-spring-standard);
+}
+
+.ex-cell:disabled {
+  cursor: default;
+}
+
+.ex-cell--occupied {
+  background: var(--ex-surface-elevated);
+}
+
+.ex-cell--declare {
+  border-color: var(--ex-primary);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ex-primary) 55%, transparent);
+}
+
+.ex-cell:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+.ex-token-btn {
+  display: inline-grid;
+  place-items: center;
+  padding: 0.2rem;
+  border: 2px solid transparent;
+  border-radius: var(--ex-radius-sm);
+  background: var(--ex-surface-elevated);
+  cursor: pointer;
+  transition: transform var(--ex-spring-standard), border-color var(--ex-spring-standard);
+}
+
+.ex-token-btn--selected {
+  border-color: var(--ex-primary);
+  transform: scale(1.06);
+}
+
+.ex-token-btn:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.ex-hand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--ex-radius-emphasized);
+  background: color-mix(in srgb, var(--ex-secondary) 22%, var(--ex-surface-elevated));
+  border: 1px solid color-mix(in srgb, var(--ex-secondary) 50%, var(--ex-outline));
+}
