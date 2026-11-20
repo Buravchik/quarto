@@ -22,11 +22,21 @@ const webapp = process.env.TELEGRAM_WEBAPP_URL;
 
 const bot = token ? new Telegraf(token) : null;
 
+/** Mini App origin with trailing slash; query params attach after /quarto/. */
+function miniAppUrl(sessionId?: string): string | undefined {
+  if (!webapp) return undefined;
+  const base = webapp.replace(/\/?$/, "/");
+  if (!sessionId) return base;
+  return `${base}?sessionId=${encodeURIComponent(sessionId)}`;
+}
+
 function playKeyboard(sessionId: string, langCode?: string) {
   const copy = t(langCode);
-  if (!webapp) return undefined;
+  const url = miniAppUrl(sessionId);
+  if (!url) return undefined;
   return Markup.inlineKeyboard([
-    [Markup.button.url(copy.openMiniApp, `${webapp}?sessionId=${sessionId}`)],
+    // webApp opens inside Telegram; url would open an external browser (↗)
+    [Markup.button.webApp(copy.openMiniApp, url)],
     [Markup.button.switchToChat(copy.dropInChat, "")],
   ]);
 }
@@ -86,7 +96,14 @@ if (bot) {
           },
           // reply_markup required so Telegram gives us inline_message_id on choose
           reply_markup: {
-            inline_keyboard: [[{ text: copy.openMiniApp, url: webapp ?? "https://t.me" }]],
+            inline_keyboard: [
+              [
+                {
+                  text: copy.openMiniApp,
+                  web_app: { url: miniAppUrl() ?? "https://t.me" },
+                },
+              ],
+            ],
           },
         },
       ],
@@ -106,15 +123,16 @@ if (bot) {
       await setCardInlineMessage(created.cardId, inlineMessageId);
       const view = await cardView(created.cardId);
       const text = view ? formatCardMessage(view) : `Card ${created.cardId}`;
+      const openUrl = miniAppUrl(created.sessionId);
       const extra =
-        webapp != null
+        openUrl != null
           ? {
               reply_markup: {
                 inline_keyboard: [
                   [
                     {
                       text: copy.openMiniApp,
-                      url: `${webapp}?sessionId=${created.sessionId}`,
+                      web_app: { url: openUrl },
                     },
                   ],
                 ],

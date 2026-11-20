@@ -114,7 +114,6 @@ export async function cardView(cardId: string) {
 }
 
 export function formatCardMessage(view: NonNullable<Awaited<ReturnType<typeof cardView>>>): string {
-  const webapp = process.env.TELEGRAM_WEBAPP_URL;
   const lines = [`Quarto · ${view.cardId.slice(0, 8)}`, `Surface: ${view.surface}`, ""];
   view.slots.forEach((slot, i) => {
     const a = slot.seatLabels?.[0] ?? slot.seats[0]?.telegramUserId ?? "—";
@@ -122,9 +121,6 @@ export function formatCardMessage(view: NonNullable<Awaited<ReturnType<typeof ca
     const turn =
       slot.status === "active" && slot.turnSeat != null ? ` · turn seat ${slot.turnSeat}` : "";
     lines.push(`${i + 1}. ${slot.status}${turn} · ${a} vs ${b}`);
-    if (webapp) {
-      lines.push(`   play: ${webapp}?sessionId=${slot.sessionId}`);
-    }
   });
   if (view.slots.length === 0) lines.push("(no slots)");
   return lines.join("\n");
