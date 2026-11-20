@@ -125,6 +125,18 @@ export async function cardView(cardId: string) {
   };
 }
 
+/** Open Mini App target: first waiting → first active|pie → first slot (014). */
+export function preferredOpenSessionId(
+  slots: { sessionId: string; status: string }[],
+): string | undefined {
+  if (!slots.length) return undefined;
+  const waiting = slots.find((s) => s.status === "waiting");
+  if (waiting) return waiting.sessionId;
+  const live = slots.find((s) => s.status === "active" || s.status === "pie");
+  if (live) return live.sessionId;
+  return slots[0]?.sessionId;
+}
+
 export function formatCardMessage(
   view: NonNullable<Awaited<ReturnType<typeof cardView>>>,
   lang?: string,
