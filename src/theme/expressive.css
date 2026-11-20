@@ -59,13 +59,30 @@ body {
   color: var(--ex-on-surface);
   font-family: var(--ex-font-body);
   overflow-x: clip;
+  /* Keep L/R gutters stable when a vertical scrollbar appears. */
+  scrollbar-gutter: stable;
 }
 
 .ex-app {
-  /* Base gutters + iOS/Android safe-area + Telegram content safe-area (013). */
-  --ex-pad-x: 1.25rem;
+  /*
+   * Shell gutters (013 follow-up):
+   * - base pad for touch
+   * - Telegram device safe-area (--tg-safe-area-inset-*, fallback env())
+   * - Telegram UI content safe-area (--tg-content-safe-area-inset-*)
+   * Horizontal: max(L,R) on both sides so the composition does not lean left/right.
+   */
+  --ex-pad-x: 1.5rem;
   --ex-pad-top: 1.25rem;
-  --ex-pad-bottom: 2rem;
+  --ex-pad-bottom: 2.25rem;
+  --ex-safe-left: calc(
+    var(--tg-safe-area-inset-left, env(safe-area-inset-left, 0px)) +
+      var(--tg-content-safe-area-inset-left, 0px)
+  );
+  --ex-safe-right: calc(
+    var(--tg-safe-area-inset-right, env(safe-area-inset-right, 0px)) +
+      var(--tg-content-safe-area-inset-right, 0px)
+  );
+  --ex-safe-x: max(var(--ex-safe-left), var(--ex-safe-right));
   min-height: 100vh;
   min-height: 100dvh;
   box-sizing: border-box;
@@ -73,18 +90,15 @@ body {
   max-width: 100%;
   overflow-x: clip;
   padding-top: calc(
-    var(--ex-pad-top) + env(safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)
+    var(--ex-pad-top) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
+      var(--tg-content-safe-area-inset-top, 0px)
   );
-  padding-right: calc(
-    var(--ex-pad-x) + env(safe-area-inset-right, 0px) + var(--tg-content-safe-area-inset-right, 0px)
-  );
+  padding-right: calc(var(--ex-pad-x) + var(--ex-safe-x));
   padding-bottom: calc(
-    var(--ex-pad-bottom) + env(safe-area-inset-bottom, 0px) +
+    var(--ex-pad-bottom) + var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
       var(--tg-content-safe-area-inset-bottom, 0px)
   );
-  padding-left: calc(
-    var(--ex-pad-x) + env(safe-area-inset-left, 0px) + var(--tg-content-safe-area-inset-left, 0px)
-  );
+  padding-left: calc(var(--ex-pad-x) + var(--ex-safe-x));
   background:
     radial-gradient(ellipse 90% 55% at 12% -10%, rgba(42, 157, 143, 0.35), transparent 55%),
     radial-gradient(ellipse 70% 45% at 95% 5%, rgba(201, 162, 39, 0.18), transparent 50%),
@@ -198,11 +212,6 @@ body {
   gap: 0.5rem;
 }
 
-.ex-waiting-head {
-  position: relative;
-  padding-inline-end: 2.35rem;
-}
-
 .ex-waiting-row {
   display: flex;
   align-items: center;
@@ -223,21 +232,6 @@ body {
   flex: 0 0 auto;
   align-items: center;
   gap: 0.4rem;
-}
-
-.ex-waiting-corner {
-  position: absolute;
-  top: 0.55rem;
-  inset-inline-end: 0.55rem;
-}
-
-/* Primary actions sit before the debug corner on the trailing edge. */
-.ex-waiting-head:has(.ex-waiting-actions) {
-  padding-inline-end: 0.75rem;
-}
-
-.ex-waiting-head:has(.ex-waiting-actions) .ex-waiting-row {
-  padding-inline-end: 1.85rem;
 }
 
 .ex-muted {
@@ -265,9 +259,11 @@ body {
 
 .ex-board {
   display: grid;
-  grid-template-columns: repeat(4, minmax(3.1rem, 1fr));
-  gap: 0.4rem;
-  max-width: 16rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  /* Match chrome width — a 16rem left-aligned board left a fat empty right gutter. */
+  width: 100%;
+  max-width: 22rem;
 }
 
 .ex-cell {
