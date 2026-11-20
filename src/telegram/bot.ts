@@ -13,6 +13,7 @@ import {
 import { loadEnvFile } from "./http";
 import { miniAppUrl } from "./miniAppUrl";
 import { setNotifyTransport } from "./notify";
+import { displayNameFromTelegram } from "./players";
 
 loadEnvFile();
 registerOpenApiStubs();
@@ -75,6 +76,7 @@ if (bot) {
       ownerTelegramUserId: String(ctx.from.id),
       surface,
       chatId: String(chat.id),
+      displayName: displayNameFromTelegram(ctx.from),
     });
     const view = await cardView(created.cardId);
     const text = view ? formatCardMessage(view) : `Card ${created.cardId}`;
@@ -116,6 +118,7 @@ if (bot) {
       const created = await createCard({
         ownerTelegramUserId: String(ctx.from.id),
         surface: "inline",
+        displayName: displayNameFromTelegram(ctx.from),
       });
       await setCardInlineMessage(created.cardId, inlineMessageId);
       const view = await cardView(created.cardId);
