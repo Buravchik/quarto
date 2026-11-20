@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,5 +31,5 @@
 
 ## Notes
 
-- One clarification remains: FR-010 piece art direction (flat silhouette vs richer 3D-like tokens).
-- Blocked on `/speckit-clarify` (or direct answers) before `/speckit-plan`.
+- Clarifications encoded 2026-11-20: (1) trait-channel modular piece encoding for future packs; (2) Material 3 Expressive required — deliver via tokens/shapes/spring if component library lacks Expressive parity.
+- Checklist green → await user OK for `/speckit-plan`.
