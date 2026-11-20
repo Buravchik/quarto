@@ -85,7 +85,6 @@
 ## Разработка
 
 Спеки: `specs/`. Конституция: `.specify/memory/constitution.md`.  
-Заготовки будущих вариантов (это не правила текущей игры): `docs/modes-backlog.md`.
 
 ```bash
 cp .env.example .env
