@@ -99,19 +99,33 @@ let sessionId;
     `phase=${snap0.json.phase} piece=${piece}`,
   );
 
+  // Respect random opener: act as whichever seat must give
+  const turnSeat = snap0.json.turnSeat;
+  const seat0Id = String(snap0.json.seat0?.telegramUserId ?? "");
+  const seat1Id = String(snap0.json.seat1?.telegramUserId ?? "");
+  const giverInit =
+    turnSeat === 0 && seat0Id === "910001"
+      ? a
+      : turnSeat === 1 && seat1Id === "910002"
+        ? b
+        : turnSeat === 0
+          ? a
+          : b;
+  const placerInit = giverInit === a ? b : a;
+
   const give = await req("POST", `/api/v1/sessions/${sessionId}/intent`, {
-    initData: a,
+    initData: giverInit,
     type: "give",
     pieceId: piece,
   });
   ok(
     "A give",
     give.status === 200 && give.json.session?.pieceInHand === piece,
-    `status=${give.status}`,
+    `status=${give.status} turnSeat=${turnSeat}`,
   );
 
   const place = await req("POST", `/api/v1/sessions/${sessionId}/intent`, {
-    initData: b,
+    initData: placerInit,
     type: "place",
     cellIndex: 0,
   });
@@ -132,8 +146,18 @@ let sessionId;
     JSON.stringify(illegal.json),
   );
 
+  const snap1 = await req(
+    "GET",
+    `/api/v1/sessions/${sessionId}?initData=${encodeURIComponent(a)}`,
+  );
+  const afterTurn = snap1.json.turnSeat;
+  // Waiting seat = not turnSeat
+  const waiterInit =
+    afterTurn === 0 ? b : afterTurn === 1 ? a : a;
+  const actorInit = waiterInit === a ? b : a;
+
   const earlyTimeout = await req("POST", `/api/v1/sessions/${sessionId}/intent`, {
-    initData: a,
+    initData: waiterInit,
     type: "claim_timeout",
   });
   ok(
@@ -143,7 +167,7 @@ let sessionId;
   );
 
   const resign = await req("POST", `/api/v1/sessions/${sessionId}/intent`, {
-    initData: a,
+    initData: actorInit,
     type: "resign",
   });
   ok(

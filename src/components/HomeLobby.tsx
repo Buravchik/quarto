@@ -15,6 +15,7 @@ type Props = {
     startMatch: string;
     homeHint: string;
     creating: string;
+    cardSent: string;
   };
   onStarted: (sessionId: string) => void;
 };
@@ -53,6 +54,7 @@ export function HomeLobby({ apiBase, initData, copy, onStarted }: Props) {
         setError(data.error ?? `create ${res.status}`);
         return;
       }
+      // Card DM is sent by API; keep hint visible briefly via homeHint replacement in parent if needed
       onStarted(data.sessionId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "create failed");

@@ -88,6 +88,15 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
 
   useEffect(() => {
     void refresh();
+    const id = window.setInterval(() => void refresh(), 2500);
+    const onVis = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+    };
   }, [refresh]);
 
   async function sendIntent(body: Record<string, unknown>) {
@@ -250,6 +259,19 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
               </p>
               <ExPrimaryButton
                 disabled={busy}
+                onClick={() => {
+                  const tg = window.Telegram?.WebApp;
+                  if (tg && typeof tg.switchInlineQuery === "function") {
+                    tg.switchInlineQuery("");
+                    return;
+                  }
+                  setError(copy.cardSent);
+                }}
+              >
+                {copy.shareSession}
+              </ExPrimaryButton>
+              <ExSecondaryButton
+                disabled={busy}
                 onClick={async () => {
                   const link = `${window.location.origin}${window.location.pathname}?sessionId=${sessionId}`;
                   try {
@@ -261,8 +283,8 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
                   }
                 }}
               >
-                {copied ? copy.linkCopied : copy.shareSession}
-              </ExPrimaryButton>
+                {copied ? copy.linkCopied : copy.shareDebugLink}
+              </ExSecondaryButton>
             </>
           ) : null}
           {surface.expectedAction === "join" ? (

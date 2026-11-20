@@ -62,7 +62,16 @@ export async function postCardHandler(req: IncomingMessage, res: ServerResponse)
       missMode: body.missMode,
       pieRule: body.pieRule,
     });
-    return sendJson(res, 201, created);
+    // Mini App lobby start → Telegram-native card DM (not orphan session)
+    const { sendChallengeCardDm } = await import("../notify");
+    const lang = user.user.language_code;
+    const dm = await sendChallengeCardDm({
+      telegramUserId: String(user.user.id),
+      cardId: created.cardId,
+      sessionId: created.sessionId,
+      lang,
+    });
+    return sendJson(res, 201, { ...created, cardDm: dm.ok });
   } catch {
     return sendJson(res, 401, { error: "invalid_init_data" });
   }
