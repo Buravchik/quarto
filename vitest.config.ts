@@ -18,8 +18,8 @@ export default defineConfig({
         },
       },
       {
-        // Vitest 4 / Vite oxc: esbuild.jsx is ignored
-        oxc: { jsx: "automatic" },
+        // Vitest 4 / Vite oxc: esbuild.jsx is ignored; JsxOptions.runtime
+        oxc: { jsx: { runtime: "automatic" } },
         test: {
           name: "miniapp",
           environment: "happy-dom",
