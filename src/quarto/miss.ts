@@ -62,3 +62,45 @@ export function voidSets(voidedSets: number[][], toVoid: number[][]): number[][]
   }
   return next;
 }
+
+/**
+ * Legal Quarto lines to highlight when declareHints is on (presentation only).
+ * Prefers pendingVoidSets; falls back to completedSetsThrough(lastPlacedCell).
+ */
+export function legalDeclareHintSets(opts: {
+  declareHints: boolean;
+  missMode: MissMode;
+  board: (string | null)[];
+  lastPlacedCell: number | null;
+  voidedSets: number[][];
+  pendingVoidSets?: number[][];
+  modules?: string[];
+}): number[][] {
+  if (!opts.declareHints || opts.lastPlacedCell == null) return [];
+  const pending = opts.pendingVoidSets ?? [];
+  const candidates =
+    pending.length > 0
+      ? pending
+      : completedSetsThrough(opts.board, opts.lastPlacedCell, opts.modules);
+  const out: number[][] = [];
+  const seen = new Set<string>();
+  for (const setCells of candidates) {
+    if (
+      !canDeclareSet({
+        missMode: opts.missMode,
+        board: opts.board,
+        setCells,
+        lastPlacedCell: opts.lastPlacedCell,
+        voidedSets: opts.voidedSets,
+        modules: opts.modules,
+      })
+    ) {
+      continue;
+    }
+    const key = normalizeSet(setCells);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push([...setCells]);
+  }
+  return out;
+}

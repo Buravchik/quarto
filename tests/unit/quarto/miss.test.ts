@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyIntent, createInitialState, startMatch } from "../../../src/quarto/engine";
+import { legalDeclareHintSets } from "../../../src/quarto/miss";
 
 function withWinningRow(s: ReturnType<typeof createInitialState>, placer: 0 | 1) {
   s.board[0] = "p1";
@@ -103,5 +104,61 @@ describe("Miss Void", () => {
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.error).toBe("illegal_declare");
+  });
+});
+
+describe("legalDeclareHintSets", () => {
+  it("returns empty when declareHints is off", () => {
+    const board = Array.from({ length: 16 }, () => null as string | null);
+    board[0] = "p1";
+    board[1] = "p3";
+    board[2] = "p5";
+    board[3] = "p7";
+    expect(
+      legalDeclareHintSets({
+        declareHints: false,
+        missMode: "persistent",
+        board,
+        lastPlacedCell: 3,
+        voidedSets: [],
+        pendingVoidSets: [[0, 1, 2, 3]],
+      }),
+    ).toEqual([]);
+  });
+
+  it("lists legal pending sets when declareHints is on", () => {
+    const board = Array.from({ length: 16 }, () => null as string | null);
+    board[0] = "p1";
+    board[1] = "p3";
+    board[2] = "p5";
+    board[3] = "p7";
+    const hints = legalDeclareHintSets({
+      declareHints: true,
+      missMode: "persistent",
+      board,
+      lastPlacedCell: 3,
+      voidedSets: [],
+      pendingVoidSets: [[0, 1, 2, 3]],
+    });
+    expect(hints).toHaveLength(1);
+    expect([...hints[0]!].sort((a, b) => a - b)).toEqual([0, 1, 2, 3]);
+  });
+
+  it("skips voided sets even with hints on", () => {
+    const board = Array.from({ length: 16 }, () => null as string | null);
+    board[0] = "p1";
+    board[1] = "p3";
+    board[2] = "p5";
+    board[3] = "p7";
+    expect(
+      legalDeclareHintSets({
+        declareHints: true,
+        missMode: "void",
+        board,
+        lastPlacedCell: 3,
+        voidedSets: [[0, 1, 2, 3]],
+        pendingVoidSets: [[0, 1, 2, 3]],
+      }),
+    ).toEqual([]);
   });
 });

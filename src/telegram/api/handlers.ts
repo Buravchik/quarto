@@ -60,6 +60,7 @@ export async function postCardHandler(req: IncomingMessage, res: ServerResponse)
       initData?: string;
       missMode?: "persistent" | "void";
       pieRule?: boolean;
+      declareHints?: boolean;
       surface?: "group" | "dm";
     }>(req);
     const user = auth(body.initData);
@@ -70,6 +71,7 @@ export async function postCardHandler(req: IncomingMessage, res: ServerResponse)
       surface: body.surface ?? "dm",
       missMode: body.missMode,
       pieRule: body.pieRule,
+      declareHints: body.declareHints,
       displayName,
       language: lang,
     });
@@ -97,6 +99,7 @@ export async function postSlotHandler(
       initData?: string;
       missMode?: "persistent" | "void";
       pieRule?: boolean;
+      declareHints?: boolean;
     }>(req);
     const user = auth(body.initData);
     const result = await addSlot({
@@ -104,6 +107,7 @@ export async function postSlotHandler(
       ownerTelegramUserId: String(user.user.id),
       missMode: body.missMode,
       pieRule: body.pieRule,
+      declareHints: body.declareHints,
       displayName: displayNameFromInitUser(user.user),
     });
     if ("error" in result) {
@@ -233,6 +237,7 @@ export async function settingsHandler(
       initData?: string;
       missMode?: "persistent" | "void";
       pieRule?: boolean;
+      declareHints?: boolean;
     }>(req);
     const user = auth(body.initData);
     const rowCheck = await getSession(params.sessionId!);
@@ -242,6 +247,7 @@ export async function settingsHandler(
     const result = await updateSessionSettings(params.sessionId!, String(user.user.id), {
       missMode: body.missMode,
       pieRule: body.pieRule,
+      declareHints: body.declareHints,
     });
     if ("error" in result) {
       const code = result.error === "not_found" ? 404 : 403;

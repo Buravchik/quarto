@@ -248,6 +248,25 @@ body {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ex-primary) 55%, transparent);
 }
 
+.ex-cell--hint {
+  border-color: color-mix(in srgb, var(--ex-primary) 70%, var(--ex-outline));
+  background: color-mix(in srgb, var(--ex-primary) 12%, var(--ex-empty-cell));
+}
+
+.ex-declare-banner {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--ex-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--ex-primary) 45%, var(--ex-outline));
+  background: color-mix(in srgb, var(--ex-primary) 8%, var(--ex-surface));
+}
+
+.ex-declare-banner .ex-headline {
+  margin: 0;
+  font-size: 1rem;
+}
+
 .ex-cell:not(:disabled):active {
   transform: scale(0.96);
 }

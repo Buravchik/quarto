@@ -5,6 +5,7 @@ import { t } from "../i18n";
 import { decodeChannels } from "../pieces/decode";
 import { PieceToken } from "../pieces/PieceToken";
 import { derivePlaySurfaceState } from "../play/derivePlaySurfaceState";
+import { legalDeclareHintSets } from "../quarto/miss";
 import { formatTimeoutCountdown, timeoutReady } from "../quarto/timeout";
 import { ExPrimaryButton, ExSecondaryButton, ExSurface } from "../theme/components";
 import { IconCheck, IconLink, IconPersonAdd, IconPlus, IconShare } from "../theme/icons";
@@ -17,6 +18,7 @@ type Snapshot = {
   phase: string;
   missMode: "persistent" | "void";
   pieRule: boolean;
+  declareHints?: boolean;
   settingsLocked: boolean;
   board: (string | null)[];
   pool: string[];
@@ -27,6 +29,9 @@ type Snapshot = {
   seat0: { telegramUserId: string } | null;
   seat1: { telegramUserId: string } | null;
   modules?: string[];
+  voidedSets?: number[][];
+  pendingVoidSets?: number[][];
+  lastPlacedCell?: number | null;
 };
 
 type Props = {
@@ -182,6 +187,28 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
     );
   }
 
+  function sameSet(a: number[], b: number[]) {
+    if (a.length !== b.length) return false;
+    const sa = [...a].sort((x, y) => x - y);
+    const sb = [...b].sort((x, y) => x - y);
+    return sa.every((v, idx) => v === sb[idx]);
+  }
+
+  function selectDeclareFromHints(i: number, hintSets: number[][]) {
+    const matching = hintSets.filter((set) => set.includes(i));
+    if (matching.length === 0) {
+      toggleDeclare(i);
+      return;
+    }
+    setDeclareCells((prev) => {
+      const curIdx = matching.findIndex((set) => sameSet(set, prev));
+      if (curIdx >= 0) {
+        return matching[(curIdx + 1) % matching.length]!;
+      }
+      return matching[0]!;
+    });
+  }
+
   if (!session) {
     return (
       <section>
@@ -218,6 +245,20 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   const showWaitingChrome = session.status === "waiting";
   const showDebugCorner =
     showWaitingChrome && surface.expectedAction === "wait" && surface.viewerSeat === 0;
+
+  const hintSets =
+    surface.showDeclareControls && session.declareHints
+      ? legalDeclareHintSets({
+          declareHints: true,
+          missMode: session.missMode,
+          board: session.board,
+          lastPlacedCell: session.lastPlacedCell ?? null,
+          voidedSets: session.voidedSets ?? [],
+          pendingVoidSets: session.pendingVoidSets ?? [],
+          modules: session.modules,
+        })
+      : [];
+  const hintCells = hintSets.flat();
 
   async function copyDebugLink() {
     const link = `${window.location.origin}${window.location.pathname}?sessionId=${sessionId}`;
@@ -359,10 +400,26 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
         </div>
       ) : null}
 
+      {surface.showDeclareControls ? (
+        <div className="ex-declare-banner" role="status">
+          <p className="ex-headline">{copy.declareSelectLine}</p>
+          <p className="ex-muted" style={{ margin: 0 }}>
+            {copy.declareSelectedCount.replace("{n}", String(declareCells.length))}
+          </p>
+          <ExPrimaryButton
+            disabled={busy || declareCells.length !== 4}
+            onClick={() => void sendIntent({ type: "declare", setCells: declareCells })}
+          >
+            {copy.declareQuarto}
+          </ExPrimaryButton>
+        </div>
+      ) : null}
+
       <Board
         board={session.board}
         moduleId={moduleId}
         declareCells={declareCells}
+        hintCells={hintCells}
         selectableOccupied={surface.showDeclareControls && !surface.showPlaceControls}
         disabled={busy || (!surface.showPlaceControls && !surface.showDeclareControls)}
         pieceLabel={labelFor}
@@ -370,7 +427,11 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
           if (surface.showPlaceControls && !session.board[i]) {
             void sendIntent({ type: "place", cellIndex: i });
           } else if (surface.showDeclareControls) {
-            toggleDeclare(i);
+            if (hintSets.length > 0) {
+              selectDeclareFromHints(i, hintSets);
+            } else {
+              toggleDeclare(i);
+            }
           }
         }}
       />
@@ -397,20 +458,6 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
           </ExPrimaryButton>
         ) : null}
       </div>
-
-      {surface.showDeclareControls ? (
-        <div>
-          <p className="ex-muted" style={{ margin: "0 0 0.4rem" }}>
-            {copy.declareCells}: {declareCells.join(",") || "—"}
-          </p>
-          <ExSecondaryButton
-            disabled={busy || declareCells.length !== 4}
-            onClick={() => void sendIntent({ type: "declare", setCells: declareCells })}
-          >
-            {copy.declareQuarto}
-          </ExSecondaryButton>
-        </div>
-      ) : null}
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
         <ExSecondaryButton

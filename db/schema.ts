@@ -36,6 +36,8 @@ export const sessions = pgTable("sessions", {
   status: varchar("status", { length: 16 }).notNull().default("waiting"),
   missMode: varchar("miss_mode", { length: 16 }).notNull().default("persistent"),
   pieRule: boolean("pie_rule").notNull().default(false),
+  /** When true, Mini App may highlight legal Quarto lines during declare (010). */
+  declareHints: boolean("declare_hints").notNull().default(false),
   modules: jsonb("modules").$type<string[]>().notNull().default(["classic4"]),
   settingsLocked: boolean("settings_locked").notNull().default(false),
   seat0: jsonb("seat0").$type<{ telegramUserId: string; joinedAt: string } | null>(),

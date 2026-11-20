@@ -3,19 +3,33 @@
 type Props = {
   missMode: "persistent" | "void";
   pieRule: boolean;
+  declareHints: boolean;
   locked: boolean;
   disabled?: boolean;
   labels: {
     sessionRules: string;
     missVoid: string;
     pieRule: string;
+    declareHints: string;
     settingsLocked: string;
   };
-  onChange: (next: { missMode: "persistent" | "void"; pieRule: boolean }) => void;
+  onChange: (next: {
+    missMode: "persistent" | "void";
+    pieRule: boolean;
+    declareHints: boolean;
+  }) => void;
 };
 
-/** Creator lobby Miss/Pie checkboxes; hide after match start (GamePanel). */
-export function Settings({ missMode, pieRule, locked, disabled, labels, onChange }: Props) {
+/** Creator lobby Miss/Pie/hints checkboxes; hide after match start (GamePanel). */
+export function Settings({
+  missMode,
+  pieRule,
+  declareHints,
+  locked,
+  disabled,
+  labels,
+  onChange,
+}: Props) {
   const readOnly = locked || disabled;
   return (
     <fieldset
@@ -31,18 +45,34 @@ export function Settings({ missMode, pieRule, locked, disabled, labels, onChange
           type="checkbox"
           checked={missMode === "void"}
           onChange={(e) =>
-            onChange({ missMode: e.target.checked ? "void" : "persistent", pieRule })
+            onChange({
+              missMode: e.target.checked ? "void" : "persistent",
+              pieRule,
+              declareHints,
+            })
           }
         />
         {labels.missVoid}
       </label>
-      <label style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+      <label style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.4rem" }}>
         <input
           type="checkbox"
           checked={pieRule}
-          onChange={(e) => onChange({ missMode, pieRule: e.target.checked })}
+          onChange={(e) =>
+            onChange({ missMode, pieRule: e.target.checked, declareHints })
+          }
         />
         {labels.pieRule}
+      </label>
+      <label style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        <input
+          type="checkbox"
+          checked={declareHints}
+          onChange={(e) =>
+            onChange({ missMode, pieRule, declareHints: e.target.checked })
+          }
+        />
+        {labels.declareHints}
       </label>
       {locked ? (
         <p className="ex-muted" style={{ margin: "0.5rem 0 0" }}>
