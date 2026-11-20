@@ -22,17 +22,24 @@ type Handler = (
 
 const routes: { method: string; pattern: RegExp; keys: string[]; handler: Handler }[] = [];
 
+function escapeRegExpLiteral(segment: string): string {
+  return segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function add(method: string, path: string, handler: Handler) {
   const keys: string[] = [];
-  const pattern = new RegExp(
-    "^" +
-      path.replace(/\//g, "\\/").replace(/:([A-Za-z]+)/g, (_, k) => {
-        keys.push(k);
+  // Build from segments so we escape all regex meta (incl. `\`), not only `/`.
+  const body = path
+    .split("/")
+    .map((seg) => {
+      if (/^:[A-Za-z]+$/.test(seg)) {
+        keys.push(seg.slice(1));
         return "([^/]+)";
-      }) +
-      "$",
-  );
-  routes.push({ method, pattern, keys, handler });
+      }
+      return escapeRegExpLiteral(seg);
+    })
+    .join("/");
+  routes.push({ method, pattern: new RegExp(`^${body}$`), keys, handler });
 }
 
 /** Routes matching contracts/openapi.yaml */

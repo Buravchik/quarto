@@ -33,7 +33,16 @@ async function serveOut() {
       else if (rel.startsWith(`${BASE}/`)) rel = rel.slice(BASE.length);
       if (rel.endsWith("/")) rel += "index.html";
       if (rel === "/") rel = "/index.html";
-      const file = path.join(root, rel.replace(/^\//, ""));
+
+      // Keep resolved path under out/ (CodeQL js/path-injection).
+      const file = path.resolve(root, rel.replace(/^\//, ""));
+      const underRoot = path.relative(root, file);
+      if (underRoot.startsWith("..") || path.isAbsolute(underRoot)) {
+        res.writeHead(403);
+        res.end("forbidden");
+        return;
+      }
+
       const data = await readFile(file);
       const ext = path.extname(file);
       const type =
