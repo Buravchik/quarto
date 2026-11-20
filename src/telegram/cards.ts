@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { getDb } from "../../db/client";
 import { cards } from "../../db/schema";
 import type { CardSurface, MissMode } from "../quarto/types";
+import { t } from "../i18n";
 import { ensurePlayer, getAchievements, grantAchievements } from "./players";
 import { createSession, listSessionsForCard, toSnapshot, type Seat } from "./sessions";
 
@@ -15,10 +16,11 @@ export async function createCard(opts: {
   missMode?: MissMode;
   pieRule?: boolean;
   displayName?: string;
+  language?: string;
 }) {
   const db = getDb();
   const cardId = randomUUID();
-  await ensurePlayer(opts.ownerTelegramUserId, opts.displayName ?? "");
+  await ensurePlayer(opts.ownerTelegramUserId, opts.displayName ?? "", opts.language);
   await grantAchievements(opts.ownerTelegramUserId, ["host"]);
   await db.insert(cards).values({
     cardId,
@@ -118,16 +120,31 @@ export async function cardView(cardId: string) {
   };
 }
 
-export function formatCardMessage(view: NonNullable<Awaited<ReturnType<typeof cardView>>>): string {
-  const lines = [`Quarto · ${view.cardId.slice(0, 8)}`, `Surface: ${view.surface}`, ""];
+export function formatCardMessage(
+  view: NonNullable<Awaited<ReturnType<typeof cardView>>>,
+  lang?: string,
+): string {
+  const copy = t(lang);
+  const lines = [copy.cardTitle, ""];
   view.slots.forEach((slot, i) => {
     const a = slot.seatLabels?.[0] ?? "—";
     const b = slot.seatLabels?.[1] ?? "—";
-    const turn =
-      slot.status === "active" && slot.turnSeat != null ? ` · turn seat ${slot.turnSeat}` : "";
-    lines.push(`${i + 1}. ${slot.status}${turn} · ${a} vs ${b}`);
+    let status = copy.cardStatusActive;
+    if (slot.status === "waiting") status = copy.cardStatusWaiting;
+    else if (slot.status === "finished") status = copy.cardStatusFinished;
+    else if (slot.status === "pie") status = copy.cardStatusActive;
+    let turn = "";
+    if (
+      (slot.status === "active" || slot.status === "pie") &&
+      slot.turnSeat != null
+    ) {
+      const turnName =
+        slot.turnSeat === 0 ? a : slot.turnSeat === 1 ? b : "—";
+      turn = ` · ${copy.cardTurnOf.replace("{name}", turnName)}`;
+    }
+    lines.push(`${i + 1}. ${status}${turn} · ${a} vs ${b}`);
   });
-  if (view.slots.length === 0) lines.push("(no slots)");
+  if (view.slots.length === 0) lines.push("—");
   return lines.join("\n");
 }
 

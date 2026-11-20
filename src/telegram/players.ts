@@ -27,27 +27,53 @@ export function displayNameFromInitUser(user: TelegramWebAppUser): string {
   return displayNameFromTelegram(user);
 }
 
-export async function ensurePlayer(telegramUserId: string, displayName = "") {
+export async function ensurePlayer(
+  telegramUserId: string,
+  displayName = "",
+  language?: string,
+) {
   const db = getDb();
+  const lang = language?.toLowerCase().startsWith("ru")
+    ? "ru"
+    : language
+      ? "en"
+      : undefined;
   const existing = await db
     .select()
     .from(players)
     .where(eq(players.telegramUserId, telegramUserId))
     .limit(1);
   if (existing[0]) {
-    const next = displayName.trim();
-    if (next && next !== existing[0].displayName) {
+    const nextName = displayName.trim();
+    const patch: { displayName?: string; language?: string; updatedAt: Date } = {
+      updatedAt: new Date(),
+    };
+    let changed = false;
+    if (nextName && nextName !== existing[0].displayName) {
+      patch.displayName = nextName;
+      changed = true;
+    }
+    if (lang && lang !== existing[0].language) {
+      patch.language = lang;
+      changed = true;
+    }
+    if (changed) {
       await db
         .update(players)
-        .set({ displayName: next, updatedAt: new Date() })
+        .set(patch)
         .where(eq(players.telegramUserId, telegramUserId));
-      return { ...existing[0], displayName: next };
+      return {
+        ...existing[0],
+        displayName: patch.displayName ?? existing[0].displayName,
+        language: patch.language ?? existing[0].language,
+      };
     }
     return existing[0];
   }
   await db.insert(players).values({
     telegramUserId,
     displayName: displayName.trim(),
+    language: lang ?? "en",
     achievementIds: [],
     pinnedAchievementIds: [],
   });

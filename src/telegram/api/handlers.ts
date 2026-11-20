@@ -64,16 +64,17 @@ export async function postCardHandler(req: IncomingMessage, res: ServerResponse)
     }>(req);
     const user = auth(body.initData);
     const displayName = displayNameFromInitUser(user.user);
+    const lang = user.user.language_code;
     const created = await createCard({
       ownerTelegramUserId: String(user.user.id),
       surface: body.surface ?? "dm",
       missMode: body.missMode,
       pieRule: body.pieRule,
       displayName,
+      language: lang,
     });
     // Mini App lobby start → Telegram-native card DM (not orphan session)
     const { sendChallengeCardDm } = await import("../notify");
-    const lang = user.user.language_code;
     const dm = await sendChallengeCardDm({
       telegramUserId: String(user.user.id),
       cardId: created.cardId,
@@ -122,7 +123,11 @@ export async function joinHandler(
   try {
     const body = await readJson<{ initData?: string }>(req);
     const user = auth(body.initData);
-    await ensurePlayer(String(user.user.id), displayNameFromInitUser(user.user));
+    await ensurePlayer(
+      String(user.user.id),
+      displayNameFromInitUser(user.user),
+      user.user.language_code,
+    );
     const result = await joinSession(params.sessionId!, String(user.user.id));
     if ("error" in result) {
       const code = result.error === "not_found" ? 404 : 409;

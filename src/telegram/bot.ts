@@ -77,9 +77,12 @@ if (bot) {
       surface,
       chatId: String(chat.id),
       displayName: displayNameFromTelegram(ctx.from),
+      language: ctx.from.language_code,
     });
     const view = await cardView(created.cardId);
-    const text = view ? formatCardMessage(view) : `Card ${created.cardId}`;
+    const text = view
+      ? formatCardMessage(view, ctx.from.language_code)
+      : t(ctx.from.language_code).cardTitle;
     const msg = await ctx.reply(text, playKeyboard(created.sessionId, ctx.from.language_code));
     await setCardMessage(created.cardId, String(chat.id), msg.message_id);
   });
@@ -119,10 +122,13 @@ if (bot) {
         ownerTelegramUserId: String(ctx.from.id),
         surface: "inline",
         displayName: displayNameFromTelegram(ctx.from),
+        language: ctx.from.language_code,
       });
       await setCardInlineMessage(created.cardId, inlineMessageId);
       const view = await cardView(created.cardId);
-      const text = view ? formatCardMessage(view) : `Card ${created.cardId}`;
+      const text = view
+        ? formatCardMessage(view, ctx.from.language_code)
+        : copy.cardTitle;
       const openUrl = miniAppUrl(created.sessionId);
       const extra =
         openUrl != null
