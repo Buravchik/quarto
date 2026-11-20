@@ -4,6 +4,7 @@ import { cards, players } from "../../db/schema";
 import { t } from "../i18n";
 import { timeoutReady } from "../quarto/timeout";
 import { cardView, formatCardMessage, preferredOpenSessionId } from "./cards";
+import { COMPUTER_USER_ID } from "./computerSeat";
 import { webAppOpenButton } from "./miniAppUrl";
 import { getSession, type Seat } from "./sessions";
 
@@ -79,7 +80,7 @@ async function refreshCardMessage(cardId: string) {
 }
 
 async function dmWithOpen(userId: string | undefined, text: string, sessionId: string, lang?: string) {
-  if (!transport || !userId) return;
+  if (!transport || !userId || userId === COMPUTER_USER_ID) return;
   const copy = t(lang);
   const btn = webAppOpenButton(copy.openMiniApp, sessionId);
   const extra = btn

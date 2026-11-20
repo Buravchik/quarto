@@ -2,14 +2,24 @@ import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { getDb } from "../../db/client";
 import { sessions } from "../../db/schema";
+import { chooseIntent } from "../quarto/computer/policy";
 import {
   type EngineState,
+  applyIntent,
   createInitialState,
   startMatch,
 } from "../quarto/engine";
 import type { MissMode } from "../quarto/types";
+import {
+  COMPUTER_USER_ID,
+  type Difficulty,
+  isComputerSeat,
+  isDifficulty,
+} from "./computerSeat";
 
 export type Seat = { telegramUserId: string; joinedAt: string } | null;
+
+const COMPUTER_TURN_CAP = 8;
 
 function engineFromRow(row: typeof sessions.$inferSelect): EngineState {
   const base = createInitialState({
@@ -38,8 +48,20 @@ function engineFromRow(row: typeof sessions.$inferSelect): EngineState {
   };
 }
 
+export function computerSeatIndex(row: {
+  seat0: unknown;
+  seat1: unknown;
+}): 0 | 1 | null {
+  if (isComputerSeat(row.seat0 as Seat)) return 0;
+  if (isComputerSeat(row.seat1 as Seat)) return 1;
+  return null;
+}
+
 export function toSnapshot(row: typeof sessions.$inferSelect) {
   const engine = engineFromRow(row);
+  const difficulty = (row.difficulty as Difficulty | null) ?? null;
+  const opponentKind =
+    computerSeatIndex(row) != null ? ("computer" as const) : ("human" as const);
   return {
     sessionId: row.sessionId,
     cardId: row.cardId,
@@ -48,6 +70,8 @@ export function toSnapshot(row: typeof sessions.$inferSelect) {
     missMode: row.missMode,
     pieRule: row.pieRule,
     declareHints: row.declareHints ?? false,
+    difficulty,
+    opponentKind,
     settingsLocked: row.settingsLocked,
     modules: row.modules,
     seat0: row.seat0,
@@ -74,6 +98,7 @@ export async function createSession(opts: {
   missMode?: MissMode;
   pieRule?: boolean;
   declareHints?: boolean;
+  difficulty?: Difficulty | null;
 }): Promise<string> {
   const db = getDb();
   const engine = createInitialState({
@@ -89,6 +114,7 @@ export async function createSession(opts: {
     missMode: engine.missMode,
     pieRule: engine.pieRule,
     declareHints: opts.declareHints ?? false,
+    difficulty: opts.difficulty ?? null,
     modules: engine.modules,
     settingsLocked: false,
     seat0: { telegramUserId: opts.seat0UserId, joinedAt: now },
@@ -103,6 +129,55 @@ export async function createSession(opts: {
     pieResolved: false,
     voidClaimOpen: false,
   });
+  return sessionId;
+}
+
+/** Create waiting session, seat computer as seat1, start match, run opening computer turns. */
+export async function createVsComputerSession(opts: {
+  cardId: string;
+  seat0UserId: string;
+  difficulty: Difficulty;
+  missMode?: MissMode;
+  pieRule?: boolean;
+  declareHints?: boolean;
+}): Promise<string> {
+  const sessionId = await createSession({
+    cardId: opts.cardId,
+    seat0UserId: opts.seat0UserId,
+    missMode: opts.missMode,
+    pieRule: opts.pieRule,
+    declareHints: opts.declareHints,
+    difficulty: opts.difficulty,
+  });
+
+  let engine = engineFromRow((await getSession(sessionId))!);
+  engine.settingsLocked = true;
+  // Human is seat0; random opener still OK
+  engine = startMatch(engine);
+
+  const now = new Date().toISOString();
+  const db = getDb();
+  await db
+    .update(sessions)
+    .set({
+      seat1: { telegramUserId: COMPUTER_USER_ID, joinedAt: now },
+      settingsLocked: true,
+      status: "active",
+      difficulty: opts.difficulty,
+      phase: engine.phase,
+      board: engine.board,
+      pool: engine.pool,
+      pieceInHand: engine.pieceInHand,
+      openerSeat: engine.openerSeat,
+      turnSeat: engine.turnSeat,
+      pieResolved: engine.pieResolved,
+      firstPlaceDone: engine.firstPlaceDone,
+      turnNotifiedAt: engine.turnNotifiedAt ? new Date(engine.turnNotifiedAt) : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(sessions.sessionId, sessionId));
+
+  await runComputerTurns(sessionId);
   return sessionId;
 }
 
@@ -146,10 +221,12 @@ export async function joinSession(sessionId: string, userId: string) {
   const row = await getSession(sessionId);
   if (!row) return { error: "not_found" as const };
   if (row.status !== "waiting") return { error: "conflict" as const };
+  if (row.difficulty) return { error: "conflict" as const };
   const seat0 = row.seat0 as Seat;
   const seat1 = row.seat1 as Seat;
   if (seat0?.telegramUserId === userId) return { error: "conflict" as const };
   if (seat1) return { error: "conflict" as const };
+  if (userId === COMPUTER_USER_ID) return { error: "conflict" as const };
 
   let engine = engineFromRow(row);
   engine.settingsLocked = true;
@@ -195,6 +272,39 @@ export async function rematchAction(
 
   const db = getDb();
   const offer = row.rematchOffer as { offeredBy: string; state: "offered" | "declined" } | null;
+  const vsComputer = computerSeatIndex(row) != null;
+  const difficulty =
+    (isDifficulty(row.difficulty) ? row.difficulty : null) ??
+    ("normal" as Difficulty);
+
+  // Vs computer: offer immediately starts a new computer match for the human (seat0).
+  if (action === "offer" && vsComputer) {
+    const humanId = seat0?.telegramUserId;
+    if (!humanId || humanId === COMPUTER_USER_ID || humanId !== userId) {
+      return { error: "forbidden" as const };
+    }
+    const newSessionId = await createVsComputerSession({
+      cardId: row.cardId,
+      seat0UserId: humanId,
+      difficulty,
+      missMode: row.missMode as MissMode,
+      pieRule: row.pieRule,
+      declareHints: row.declareHints ?? false,
+    });
+    await db
+      .update(sessions)
+      .set({
+        rematchOfSessionId: sessionId,
+        rematchOffer: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(sessions.sessionId, newSessionId));
+    await db
+      .update(sessions)
+      .set({ rematchOffer: null, updatedAt: new Date() })
+      .where(eq(sessions.sessionId, sessionId));
+    return { newSessionId, offerState: "none" as const };
+  }
 
   if (action === "offer") {
     await db
@@ -286,6 +396,53 @@ export async function saveEngine(sessionId: string, engine: EngineState, status?
       updatedAt: new Date(),
     })
     .where(eq(sessions.sessionId, sessionId));
+}
+
+/** Apply computer policy while it is the computer's turn. */
+export async function runComputerTurns(sessionId: string): Promise<{ events: string[] }> {
+  const events: string[] = [];
+  for (let i = 0; i < COMPUTER_TURN_CAP; i++) {
+    const row = await getSession(sessionId);
+    if (!row) break;
+    const seat = computerSeatIndex(row);
+    if (seat == null) break;
+    if (!isDifficulty(row.difficulty)) break;
+
+    let engine = engineFromRow(row);
+    if (engine.phase === "finished") break;
+
+    // Computer may declare on void claim even when turnSeat is computer for place
+    const canAct =
+      engine.turnSeat === seat ||
+      (engine.voidClaimOpen && engine.phase === "place_received") ||
+      (engine.lastPlacerSeat === seat &&
+        (engine.phase === "select_give" || engine.phase === "pie_choice") &&
+        engine.pendingVoidSets.length > 0);
+
+    if (!canAct && engine.turnSeat !== seat) break;
+
+    const intent = chooseIntent(engine, seat, { difficulty: row.difficulty });
+    if (!intent) break;
+
+    const result = applyIntent(engine, seat, intent);
+    if (!result.ok) break;
+
+    await saveEngine(sessionId, result.state);
+    events.push(...result.events);
+    engine = result.state;
+    if (engine.phase === "finished") break;
+    if (engine.turnSeat !== seat) {
+      // Still may need declare if we just placed — turnSeat stays placer after place
+      if (
+        engine.lastPlacerSeat === seat &&
+        (engine.phase === "select_give" || engine.phase === "pie_choice")
+      ) {
+        continue;
+      }
+      break;
+    }
+  }
+  return { events };
 }
 
 export { engineFromRow };

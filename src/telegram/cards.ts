@@ -5,7 +5,14 @@ import { cards } from "../../db/schema";
 import type { CardSurface, MissMode } from "../quarto/types";
 import { t } from "../i18n";
 import { ensurePlayer, getAchievements, grantAchievements } from "./players";
-import { createSession, listSessionsForCard, toSnapshot, type Seat } from "./sessions";
+import { COMPUTER_USER_ID, type Difficulty } from "./computerSeat";
+import {
+  createSession,
+  createVsComputerSession,
+  listSessionsForCard,
+  toSnapshot,
+  type Seat,
+} from "./sessions";
 
 const SLOT_CAP = 8;
 
@@ -18,6 +25,8 @@ export async function createCard(opts: {
   declareHints?: boolean;
   displayName?: string;
   language?: string;
+  vsComputer?: boolean;
+  difficulty?: Difficulty;
 }) {
   const db = getDb();
   const cardId = randomUUID();
@@ -29,13 +38,22 @@ export async function createCard(opts: {
     surface: opts.surface,
     chatId: opts.chatId ?? null,
   });
-  const sessionId = await createSession({
-    cardId,
-    seat0UserId: opts.ownerTelegramUserId,
-    missMode: opts.missMode,
-    pieRule: opts.pieRule,
-    declareHints: opts.declareHints,
-  });
+  const sessionId = opts.vsComputer
+    ? await createVsComputerSession({
+        cardId,
+        seat0UserId: opts.ownerTelegramUserId,
+        difficulty: opts.difficulty ?? "normal",
+        missMode: opts.missMode,
+        pieRule: opts.pieRule,
+        declareHints: opts.declareHints,
+      })
+    : await createSession({
+        cardId,
+        seat0UserId: opts.ownerTelegramUserId,
+        missMode: opts.missMode,
+        pieRule: opts.pieRule,
+        declareHints: opts.declareHints,
+      });
   return { cardId, sessionId };
 }
 
@@ -86,6 +104,7 @@ export async function addSlot(opts: {
 
 async function seatLabel(seat: Seat): Promise<string> {
   if (!seat?.telegramUserId) return "—";
+  if (seat.telegramUserId === COMPUTER_USER_ID) return "Computer";
   const row = await ensurePlayer(seat.telegramUserId);
   const name = row.displayName?.trim() || seat.telegramUserId;
   const ach = await getAchievements(seat.telegramUserId);

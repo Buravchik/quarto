@@ -12,11 +12,13 @@ import {
   grantMatchUnlocks,
   pinAchievements,
 } from "../players";
+import { COMPUTER_USER_ID, isDifficulty } from "../computerSeat";
 import {
   engineFromRow,
   getSession,
   joinSession,
   rematchAction,
+  runComputerTurns,
   saveEngine,
   toSnapshot,
   updateSessionSettings,
@@ -62,10 +64,15 @@ export async function postCardHandler(req: IncomingMessage, res: ServerResponse)
       pieRule?: boolean;
       declareHints?: boolean;
       surface?: "group" | "dm";
+      vsComputer?: boolean;
+      difficulty?: string;
     }>(req);
     const user = auth(body.initData);
     const displayName = displayNameFromInitUser(user.user);
     const lang = user.user.language_code;
+    if (body.vsComputer && !isDifficulty(body.difficulty)) {
+      return sendJson(res, 400, { error: "illegal_move" });
+    }
     const created = await createCard({
       ownerTelegramUserId: String(user.user.id),
       surface: body.surface ?? "dm",
@@ -74,6 +81,8 @@ export async function postCardHandler(req: IncomingMessage, res: ServerResponse)
       declareHints: body.declareHints,
       displayName,
       language: lang,
+      vsComputer: body.vsComputer,
+      difficulty: body.vsComputer ? body.difficulty : undefined,
     });
     // Mini App lobby start → Telegram-native card DM (not orphan session)
     const { sendChallengeCardDm } = await import("../notify");
@@ -189,22 +198,28 @@ export async function intentHandler(
       return sendJson(res, status, { error: result.error });
     }
     await saveEngine(params.sessionId!, result.state);
-    if (result.events.includes("match_ended")) {
+    const allEvents = [...result.events];
+    if (!result.events.includes("match_ended")) {
+      const cpu = await runComputerTurns(params.sessionId!);
+      allEvents.push(...cpu.events);
+    }
+    const updated = await getSession(params.sessionId!);
+    const engineOut = updated ? engineFromRow(updated) : result.state;
+    if (allEvents.includes("match_ended") || engineOut.phase === "finished") {
       const card = await getCard(row.cardId);
       await grantMatchUnlocks({
-        seat0UserId: (row.seat0 as Seat)?.telegramUserId,
-        seat1UserId: (row.seat1 as Seat)?.telegramUserId,
-        outcome: result.state.outcome,
-        pieRule: result.state.pieRule,
-        pieResolved: result.state.pieResolved,
+        seat0UserId: (updated?.seat0 as Seat)?.telegramUserId ?? (row.seat0 as Seat)?.telegramUserId,
+        seat1UserId: (updated?.seat1 as Seat)?.telegramUserId ?? (row.seat1 as Seat)?.telegramUserId,
+        outcome: engineOut.outcome,
+        pieRule: engineOut.pieRule,
+        pieResolved: engineOut.pieResolved,
         cardOwnerId: card?.ownerTelegramUserId,
       });
     }
-    await dispatchSessionEvents(params.sessionId!, result.events);
-    const updated = await getSession(params.sessionId!);
+    await dispatchSessionEvents(params.sessionId!, allEvents);
     return sendJson(res, 200, {
       session: updated ? toSnapshot(updated) : null,
-      events: result.events,
+      events: allEvents,
     });
   } catch {
     return sendJson(res, 401, { error: "invalid_init_data" });
@@ -219,8 +234,11 @@ export async function getSessionHandler(
   try {
     const url = new URL(req.url ?? "/", "http://localhost");
     auth(url.searchParams.get("initData") ?? undefined);
-    const row = await getSession(params.sessionId!);
+    let row = await getSession(params.sessionId!);
     if (!row) return sendJson(res, 404, { error: "not_found" });
+    // Resume: if computer to move, advance now
+    await runComputerTurns(params.sessionId!);
+    row = (await getSession(params.sessionId!)) ?? row;
     return sendJson(res, 200, toSnapshot(row));
   } catch {
     return sendJson(res, 401, { error: "invalid_init_data" });
@@ -274,17 +292,17 @@ export async function rematchHandler(
       const code = result.error === "not_found" ? 404 : 403;
       return sendJson(res, code, { error: result.error });
     }
-    if (body.action === "offer") {
+    if (body.action === "offer" && !("newSessionId" in result && result.newSessionId)) {
       await dispatchSessionEvents(params.sessionId!, ["rematch_offered"]);
     }
-    if (body.action === "accept" && "newSessionId" in result && result.newSessionId) {
+    if ("newSessionId" in result && result.newSessionId) {
       await grantAchievements(String(user.user.id), ["rematch"]);
       const row = await getSession(params.sessionId!);
       const other =
         (row?.seat0 as Seat)?.telegramUserId === String(user.user.id)
           ? (row?.seat1 as Seat)?.telegramUserId
           : (row?.seat0 as Seat)?.telegramUserId;
-      if (other) await grantAchievements(other, ["rematch"]);
+      if (other && other !== COMPUTER_USER_ID) await grantAchievements(other, ["rematch"]);
     }
     return sendJson(res, 200, result);
   } catch {
