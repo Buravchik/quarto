@@ -51,7 +51,7 @@ describe("useTelegramWebApp initData race", () => {
     };
     // Without polling, a component that only ran the first line stays empty — regression guard is the hook test above.
     expect(oneShot).toBe("");
-    expect(window.Telegram.WebApp.initData).toContain("user=");
+    expect(window.Telegram?.WebApp?.initData).toContain("user=");
   });
 
   it("marks outsideTelegram when WebApp never provides initData before timeout", async () => {
