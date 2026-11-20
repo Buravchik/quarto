@@ -6,6 +6,7 @@ import { decodeChannels } from "../pieces/decode";
 import { PieceToken } from "../pieces/PieceToken";
 import { derivePlaySurfaceState } from "../play/derivePlaySurfaceState";
 import { ExPrimaryButton, ExSecondaryButton, ExSurface } from "../theme/components";
+import { IconCheck, IconLink, IconPersonAdd, IconPlus, IconShare } from "../theme/icons";
 import { Board } from "./Board";
 import { Pool } from "./Pool";
 
@@ -207,82 +208,98 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   const headline = headlines[surface.headlineKey] ?? surface.headlineKey;
   const labelFor = (id: string) => traitLabel(copy, id, moduleId);
 
+  const showWaitingChrome = session.status === "waiting";
+  const showDebugCorner =
+    showWaitingChrome && surface.expectedAction === "wait" && surface.viewerSeat === 0;
+
+  async function copyDebugLink() {
+    const link = `${window.location.origin}${window.location.pathname}?sessionId=${sessionId}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError(link);
+    }
+  }
+
   return (
     <section style={{ display: "grid", gap: "0.75rem" }}>
-      <ExSurface emphasized>
+      <ExSurface emphasized className={showDebugCorner ? "ex-waiting-head" : undefined}>
         <p className="ex-headline">{headline}</p>
         {session.outcome ? (
           <p className="ex-muted" style={{ margin: "0.35rem 0 0" }}>
             {copy.matchEnded}: {session.outcome.type}
           </p>
         ) : null}
+        {showDebugCorner ? (
+          <button
+            type="button"
+            className="ex-btn ex-icon-btn ex-icon-btn--ghost ex-waiting-corner"
+            disabled={busy}
+            aria-label={copied ? copy.linkCopied : copy.shareDebugLink}
+            title={copied ? copy.linkCopied : copy.shareDebugLink}
+            onClick={() => void copyDebugLink()}
+          >
+            {copied ? <IconCheck /> : <IconLink />}
+          </button>
+        ) : null}
       </ExSurface>
       {error ? <p className="ex-error">{error}</p> : null}
 
-      {session.status === "waiting" ? (
+      {showWaitingChrome ? (
         <div className="ex-waiting">
           {surface.expectedAction === "wait" && surface.viewerSeat === 0 ? (
-            <>
-              <div className="ex-actions-row">
-                <ExPrimaryButton
-                  className="ex-btn--compact"
-                  disabled={busy}
-                  onClick={() => {
-                    const tg = window.Telegram?.WebApp;
-                    if (tg && typeof tg.switchInlineQuery === "function") {
-                      tg.switchInlineQuery("");
-                      return;
-                    }
-                    setError(copy.cardSent);
-                  }}
-                >
-                  {copy.shareSession}
-                </ExPrimaryButton>
-                {onLeave ? (
-                  <ExSecondaryButton
-                    className="ex-btn--compact"
-                    disabled={busy}
-                    onClick={onLeave}
-                  >
-                    {copy.backHome}
-                  </ExSecondaryButton>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                className="ex-link"
+            <div className="ex-actions-row">
+              <ExPrimaryButton
+                className="ex-icon-btn"
                 disabled={busy}
-                onClick={async () => {
-                  const link = `${window.location.origin}${window.location.pathname}?sessionId=${sessionId}`;
-                  try {
-                    await navigator.clipboard.writeText(link);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  } catch {
-                    setError(link);
+                aria-label={copy.shareSession}
+                title={copy.shareSession}
+                onClick={() => {
+                  const tg = window.Telegram?.WebApp;
+                  if (tg && typeof tg.switchInlineQuery === "function") {
+                    tg.switchInlineQuery("");
+                    return;
                   }
+                  setError(copy.cardSent);
                 }}
               >
-                {copied ? copy.linkCopied : copy.shareDebugLink}
-              </button>
-            </>
+                <IconShare />
+              </ExPrimaryButton>
+              {onLeave ? (
+                <ExSecondaryButton
+                  className="ex-icon-btn"
+                  disabled={busy}
+                  aria-label={copy.backHome}
+                  title={copy.backHome}
+                  onClick={onLeave}
+                >
+                  <IconPlus />
+                </ExSecondaryButton>
+              ) : null}
+            </div>
           ) : null}
           {surface.expectedAction === "join" ? (
             <div className="ex-actions-row">
               <ExPrimaryButton
-                className="ex-btn--compact"
+                className="ex-icon-btn"
                 disabled={busy}
+                aria-label={copy.joinSeat1}
+                title={copy.joinSeat1}
                 onClick={() => void join()}
               >
-                {copy.joinSeat1}
+                <IconPersonAdd />
               </ExPrimaryButton>
               {onLeave ? (
                 <ExSecondaryButton
-                  className="ex-btn--compact"
+                  className="ex-icon-btn"
                   disabled={busy}
+                  aria-label={copy.backHome}
+                  title={copy.backHome}
                   onClick={onLeave}
                 >
-                  {copy.backHome}
+                  <IconPlus />
                 </ExSecondaryButton>
               ) : null}
             </div>
@@ -292,11 +309,13 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
           onLeave ? (
             <div className="ex-actions-row">
               <ExSecondaryButton
-                className="ex-btn--compact"
+                className="ex-icon-btn"
                 disabled={busy}
+                aria-label={copy.backHome}
+                title={copy.backHome}
                 onClick={onLeave}
               >
-                {copy.backHome}
+                <IconPlus />
               </ExSecondaryButton>
             </div>
           ) : null}
