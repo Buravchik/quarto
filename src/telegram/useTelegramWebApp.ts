@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { applyTelegramSafeAreaCssVars, watchTelegramSafeAreaCssVars } from "./applyTelegramSafeAreaCssVars";
 
 export type TelegramBoot = {
   ready: boolean;
@@ -23,6 +24,7 @@ export function useTelegramWebApp(timeoutMs = 4000): TelegramBoot {
   useEffect(() => {
     let cancelled = false;
     let settled = false;
+    let stopWatchInsets: (() => void) | undefined;
 
     const finish = (data: string, language?: string, outside = false) => {
       if (cancelled || settled) return;
@@ -31,6 +33,8 @@ export function useTelegramWebApp(timeoutMs = 4000): TelegramBoot {
       setLang(language);
       setOutsideTelegram(outside);
       setReady(true);
+      applyTelegramSafeAreaCssVars();
+      stopWatchInsets = watchTelegramSafeAreaCssVars();
     };
 
     const tryRead = (): boolean => {
@@ -42,6 +46,7 @@ export function useTelegramWebApp(timeoutMs = 4000): TelegramBoot {
       } catch {
         /* ignore */
       }
+      applyTelegramSafeAreaCssVars();
       const data = (tg.initData ?? "").trim();
       if (data) {
         finish(data, tg.initDataUnsafe?.user?.language_code);
@@ -50,7 +55,12 @@ export function useTelegramWebApp(timeoutMs = 4000): TelegramBoot {
       return false;
     };
 
-    if (tryRead()) return;
+    if (tryRead()) {
+      return () => {
+        cancelled = true;
+        stopWatchInsets?.();
+      };
+    }
 
     const started = Date.now();
     const tick = window.setInterval(() => {
@@ -69,6 +79,7 @@ export function useTelegramWebApp(timeoutMs = 4000): TelegramBoot {
     return () => {
       cancelled = true;
       window.clearInterval(tick);
+      stopWatchInsets?.();
     };
   }, [timeoutMs]);
 

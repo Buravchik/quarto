@@ -251,7 +251,6 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
     surface.expectedAction !== "wait" &&
     surface.expectedAction !== "join" &&
     !!onLeave;
-  const showDebugCorner = showWaitActions;
   const waitingOneRow = showWaitActions || showJoinActions || showLeaveOnly;
 
   const hintSets =
@@ -281,10 +280,7 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
 
   return (
     <section style={{ display: "grid", gap: "0.75rem" }}>
-      <ExSurface
-        emphasized
-        className={waitingOneRow || showDebugCorner ? "ex-waiting-head" : undefined}
-      >
+      <ExSurface emphasized>
         <div className={waitingOneRow ? "ex-waiting-row" : undefined}>
           <p className={`ex-headline${waitingOneRow ? " ex-waiting-headline" : ""}`}>
             {headline}
@@ -318,6 +314,16 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
                   <IconReplay />
                 </ExSecondaryButton>
               ) : null}
+              <button
+                type="button"
+                className="ex-btn ex-icon-btn ex-icon-btn--ghost"
+                disabled={busy}
+                aria-label={copied ? copy.linkCopied : copy.shareDebugLink}
+                title={copied ? copy.linkCopied : copy.shareDebugLink}
+                onClick={() => void copyDebugLink()}
+              >
+                {copied ? <IconCheck /> : <IconLink />}
+              </button>
             </div>
           ) : null}
           {showJoinActions ? (
@@ -362,18 +368,6 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
           <p className="ex-muted" style={{ margin: "0.35rem 0 0" }}>
             {copy.matchEnded}: {session.outcome.type}
           </p>
-        ) : null}
-        {showDebugCorner ? (
-          <button
-            type="button"
-            className="ex-btn ex-icon-btn ex-icon-btn--ghost ex-waiting-corner"
-            disabled={busy}
-            aria-label={copied ? copy.linkCopied : copy.shareDebugLink}
-            title={copied ? copy.linkCopied : copy.shareDebugLink}
-            onClick={() => void copyDebugLink()}
-          >
-            {copied ? <IconCheck /> : <IconLink />}
-          </button>
         ) : null}
       </ExSurface>
       {error ? <p className="ex-error">{error}</p> : null}
