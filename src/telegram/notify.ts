@@ -46,7 +46,8 @@ async function refreshCardMessage(cardId: string) {
   if (!card) return;
   const view = await cardView(cardId);
   if (!view) return;
-  const text = formatCardMessage(view);
+  const lang = await langFor(card.ownerTelegramUserId);
+  const text = formatCardMessage(view, lang);
   try {
     if (card.inlineMessageId) {
       await transport.editInlineMessageText(card.inlineMessageId, text);
@@ -81,7 +82,9 @@ export async function sendChallengeCardDm(opts: {
 }) {
   if (!transport) return { ok: false as const, error: "no_transport" };
   const view = await cardView(opts.cardId);
-  const text = view ? formatCardMessage(view) : `Quarto session ${opts.sessionId.slice(0, 8)}`;
+  const text = view
+    ? formatCardMessage(view, opts.lang)
+    : t(opts.lang).cardTitle;
   const copy = t(opts.lang);
   const btn = webAppOpenButton(copy.openMiniApp, opts.sessionId);
   const drop = { text: copy.dropInChat, switch_inline_query: "" };

@@ -12,6 +12,7 @@ export default defineConfig({
             "tests/unit/pieces/**/*.test.ts",
             "tests/unit/play/**/*.test.ts",
             "tests/unit/theme/**/*.test.ts",
+            "tests/unit/telegram/**/*.test.ts",
             "tests/contract/**/*.test.ts",
           ],
         },
