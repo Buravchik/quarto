@@ -1,10 +1,18 @@
 import type { ReactNode } from "react";
+import type { Viewport } from "next";
 import Script from "next/script";
 import "../src/theme/expressive.css";
 
 export const metadata = {
   title: "Quarto",
   description: "Telegram Quarto Mini App",
+};
+
+/** Expanded Mini App + notch devices: enable env(safe-area-inset-*). */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
