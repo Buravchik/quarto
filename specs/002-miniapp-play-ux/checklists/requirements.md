@@ -32,4 +32,4 @@
 ## Notes
 
 - Clarifications encoded 2026-11-20: (1) trait-channel modular piece encoding for future packs; (2) Material 3 Expressive required — deliver via tokens/shapes/spring if component library lacks Expressive parity.
-- Checklist green → await user OK for `/speckit-plan`.
+- Clarifications + plan + tasks done; implement landed on branch `cursor/002-miniapp-play-ux-3515`.

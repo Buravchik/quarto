@@ -7,14 +7,21 @@ export default defineConfig({
         test: {
           name: "node",
           environment: "node",
-          include: ["tests/unit/quarto/**/*.test.ts", "tests/contract/**/*.test.ts"],
+          include: [
+            "tests/unit/quarto/**/*.test.ts",
+            "tests/unit/pieces/**/*.test.ts",
+            "tests/unit/play/**/*.test.ts",
+            "tests/unit/theme/**/*.test.ts",
+            "tests/contract/**/*.test.ts",
+          ],
         },
       },
       {
+        esbuild: { jsx: "automatic" },
         test: {
           name: "miniapp",
           environment: "happy-dom",
-          include: ["tests/unit/miniapp/**/*.test.tsx"],
+          include: ["tests/unit/miniapp/**/*.test.tsx", "tests/unit/pieces/**/*.test.tsx"],
         },
       },
     ],

@@ -78,11 +78,11 @@ export function AchievementsPanel({ apiBase, initData, lang }: Props) {
   }
 
   return (
-    <section style={{ marginTop: "1.25rem" }}>
-      <h2 style={{ fontSize: "1.05rem", margin: "0 0 0.5rem" }}>
+    <section className="ex-surface" style={{ marginTop: "1.25rem" }}>
+      <h2 className="ex-headline" style={{ fontSize: "1.05rem", margin: "0 0 0.5rem" }}>
         {ru ? "Достижения" : "Achievements"}
       </h2>
-      <p style={{ margin: "0 0 0.6rem", opacity: 0.7, fontSize: "0.9rem" }}>
+      <p className="ex-muted" style={{ margin: "0 0 0.6rem", fontSize: "0.9rem" }}>
         {ru ? "Закрепите до двух — покажутся на карточке." : "Pin up to two — shown on the challenge card."}
       </p>
       <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.35rem" }}>
@@ -99,7 +99,7 @@ export function AchievementsPanel({ apiBase, initData, lang }: Props) {
                 justifyContent: "space-between",
                 gap: "0.5rem",
                 opacity: have ? 1 : 0.45,
-                borderBottom: "1px solid #243440",
+                borderBottom: "1px solid var(--ex-outline)",
                 padding: "0.35rem 0",
               }}
             >
@@ -109,17 +109,10 @@ export function AchievementsPanel({ apiBase, initData, lang }: Props) {
               </span>
               <button
                 type="button"
+                className={isPinned ? "ex-btn ex-btn--primary" : "ex-btn ex-btn--secondary"}
                 disabled={busy || !have}
                 onClick={() => void togglePin(id)}
-                style={{
-                  fontFamily: "inherit",
-                  fontSize: "0.85rem",
-                  padding: "0.25rem 0.55rem",
-                  border: "1px solid #445",
-                  background: isPinned ? "#c49a2a" : "transparent",
-                  color: isPinned ? "#0b1520" : "#e8d5a3",
-                  cursor: have ? "pointer" : "default",
-                }}
+                style={{ fontSize: "0.85rem", padding: "0.3rem 0.65rem" }}
               >
                 {isPinned ? (ru ? "Открепить" : "Unpin") : ru ? "Закрепить" : "Pin"}
               </button>
@@ -127,7 +120,7 @@ export function AchievementsPanel({ apiBase, initData, lang }: Props) {
           );
         })}
       </ul>
-      {error ? <p style={{ color: "#e07070", margin: "0.5rem 0 0" }}>{error}</p> : null}
+      {error ? <p className="ex-error" style={{ margin: "0.5rem 0 0" }}>{error}</p> : null}
     </section>
   );
 }

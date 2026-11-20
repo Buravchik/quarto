@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { PieceToken } from "../pieces/PieceToken";
+import { ExPrimaryButton, ExSurface } from "../theme/components";
 import { Settings } from "./Settings";
 
 type Props = {
@@ -16,6 +18,8 @@ type Props = {
   };
   onStarted: (sessionId: string) => void;
 };
+
+const PREVIEW_IDS = ["p0", "p5", "pa", "pf"] as const;
 
 export function HomeLobby({ apiBase, initData, copy, onStarted }: Props) {
   const [missMode, setMissMode] = useState<"persistent" | "void">("persistent");
@@ -58,24 +62,18 @@ export function HomeLobby({ apiBase, initData, copy, onStarted }: Props) {
   }
 
   return (
-    <section
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "1.25rem",
-        maxWidth: "28rem",
-      }}
-    >
-      <p
-        style={{
-          margin: 0,
-          fontSize: "1.15rem",
-          lineHeight: 1.45,
-          opacity: 0.92,
-        }}
-      >
+    <section style={{ display: "flex", flexDirection: "column", gap: "1.15rem", maxWidth: "28rem" }}>
+      <p className="ex-headline" style={{ fontWeight: 500, opacity: 0.95 }}>
         {copy.homeTagline}
       </p>
+
+      <ExSurface emphasized>
+        <div className="ex-piece-grid" aria-hidden>
+          {PREVIEW_IDS.map((id) => (
+            <PieceToken key={id} pieceId={id} size="md" decorative />
+          ))}
+        </div>
+      </ExSurface>
 
       <Settings
         missMode={missMode}
@@ -88,29 +86,16 @@ export function HomeLobby({ apiBase, initData, copy, onStarted }: Props) {
         }}
       />
 
-      <button
-        type="button"
-        disabled={busy || !initData}
-        onClick={() => void startMatch()}
-        style={{
-          fontFamily: "inherit",
-          fontSize: "1.15rem",
-          padding: "0.85rem 1.1rem",
-          border: "none",
-          borderRadius: "2px",
-          background: "#c49a2a",
-          color: "#0b1520",
-          fontWeight: 700,
-          cursor: busy ? "wait" : "pointer",
-        }}
-      >
+      <ExPrimaryButton disabled={busy || !initData} onClick={() => void startMatch()}>
         {busy ? copy.creating : copy.startMatch}
-      </button>
+      </ExPrimaryButton>
 
       {error ? (
-        <p style={{ margin: 0, color: "#e07070" }}>{error}</p>
+        <p className="ex-error">{error}</p>
       ) : (
-        <p style={{ margin: 0, opacity: 0.65, fontSize: "0.95rem" }}>{copy.homeHint}</p>
+        <p className="ex-muted" style={{ margin: 0, fontSize: "0.95rem" }}>
+          {copy.homeHint}
+        </p>
       )}
     </section>
   );

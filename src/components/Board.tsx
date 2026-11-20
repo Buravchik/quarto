@@ -1,38 +1,48 @@
 "use client";
 
+import { PieceToken } from "../pieces/PieceToken";
+
 type Props = {
   board: (string | null)[];
+  moduleId?: string;
   onCell?: (index: number) => void;
   disabled?: boolean;
+  declareCells?: number[];
+  /** When true, occupied cells stay clickable (declare selection). */
+  selectableOccupied?: boolean;
+  pieceLabel?: (pieceId: string) => string;
 };
 
-export function Board({ board, onCell, disabled }: Props) {
+export function Board({
+  board,
+  moduleId = "classic4",
+  onCell,
+  disabled,
+  declareCells = [],
+  selectableOccupied = false,
+  pieceLabel,
+}: Props) {
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(4, 3rem)",
-        gap: "0.35rem",
-      }}
-    >
-      {board.map((piece, i) => (
-        <button
-          key={i}
-          type="button"
-          disabled={disabled || !!piece}
-          onClick={() => onCell?.(i)}
-          style={{
-            width: "3rem",
-            height: "3rem",
-            border: "1px solid #335",
-            background: piece ? "#1a3a4a" : "#0d1b24",
-            color: "#e8d5a3",
-            fontSize: "0.7rem",
-          }}
-        >
-          {piece ?? ""}
-        </button>
-      ))}
+    <div className="ex-board" role="grid" aria-label="Quarto board">
+      {board.map((piece, i) => {
+        const occupied = !!piece;
+        const declaring = declareCells.includes(i);
+        const cellDisabled = disabled || (occupied && !selectableOccupied);
+        return (
+          <button
+            key={i}
+            type="button"
+            className={`ex-cell ${occupied ? "ex-cell--occupied" : ""} ${declaring ? "ex-cell--declare" : ""}`.trim()}
+            disabled={cellDisabled}
+            onClick={() => onCell?.(i)}
+            aria-label={occupied ? pieceLabel?.(piece!) ?? piece! : `Empty cell ${i + 1}`}
+          >
+            {piece ? (
+              <PieceToken pieceId={piece} moduleId={moduleId} size="md" label={pieceLabel?.(piece)} />
+            ) : null}
+          </button>
+        );
+      })}
     </div>
   );
 }

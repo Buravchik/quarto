@@ -1,33 +1,49 @@
 "use client";
 
+import { PieceToken } from "../pieces/PieceToken";
+
 type Props = {
   pool: string[];
+  moduleId?: string;
   selected?: string | null;
   onSelect?: (pieceId: string) => void;
   disabled?: boolean;
+  pieceLabel?: (pieceId: string) => string;
 };
 
-export function Pool({ pool, selected, onSelect, disabled }: Props) {
+export function Pool({
+  pool,
+  moduleId = "classic4",
+  selected,
+  onSelect,
+  disabled,
+  pieceLabel,
+}: Props) {
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", maxWidth: "20rem" }}>
-      {pool.map((id) => (
-        <button
-          key={id}
-          type="button"
-          disabled={disabled}
-          onClick={() => onSelect?.(id)}
-          style={{
-            minWidth: "2.4rem",
-            padding: "0.35rem 0.4rem",
-            border: selected === id ? "2px solid #c9a227" : "1px solid #335",
-            background: "#122430",
-            color: "#e8d5a3",
-            fontSize: "0.75rem",
-          }}
-        >
-          {id}
-        </button>
-      ))}
+    <div className="ex-piece-grid" role="list">
+      {pool.map((id) => {
+        const isSelected = selected === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            role="listitem"
+            className={`ex-token-btn ${isSelected ? "ex-token-btn--selected" : ""}`.trim()}
+            disabled={disabled}
+            onClick={() => onSelect?.(id)}
+            aria-label={pieceLabel?.(id) ?? id}
+            aria-pressed={isSelected}
+          >
+            <PieceToken
+              pieceId={id}
+              moduleId={moduleId}
+              size="sm"
+              emphasis={isSelected ? "selected" : "none"}
+              label={pieceLabel?.(id)}
+            />
+          </button>
+        );
+      })}
     </div>
   );
 }

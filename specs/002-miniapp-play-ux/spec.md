@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-20
 
-**Status**: Clarified (draft → ready for plan)
+**Status**: Implemented (awaiting merge / converge)
 
 **Input**: User description: "Make the Quarto Mini App play surface feel like the real game: recognizable piece shapes for the four traits, clear turn and hand state, and a board that reads at a glance — without changing classic rules or adding new modes."
 

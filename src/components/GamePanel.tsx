@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { t } from "../i18n";
+import { decodeChannels } from "../pieces/decode";
+import { PieceToken } from "../pieces/PieceToken";
+import { derivePlaySurfaceState } from "../play/derivePlaySurfaceState";
+import { ExPrimaryButton, ExSecondaryButton, ExSurface } from "../theme/components";
 import { Board } from "./Board";
 import { Pool } from "./Pool";
 import { Settings } from "./Settings";
@@ -21,6 +25,7 @@ type Snapshot = {
   outcome: { type: string; winnerSeat?: number } | null;
   seat0: { telegramUserId: string } | null;
   seat1: { telegramUserId: string } | null;
+  modules?: string[];
 };
 
 type Props = {
@@ -36,9 +41,30 @@ function readTelegramUserId(): string {
   return id != null ? String(id) : "";
 }
 
+function traitLabel(
+  copy: ReturnType<typeof t>,
+  pieceId: string,
+  moduleId: string,
+): string {
+  const ch = decodeChannels(moduleId, pieceId);
+  if (!ch) return pieceId;
+  const parts = [
+    ch.tone === "light" ? copy.traitToneLight : copy.traitToneDark,
+    ch.stature === "tall" ? copy.traitStatureTall : copy.traitStatureShort,
+    ch.plan === "round" ? copy.traitPlanRound : copy.traitPlanSquare,
+    ch.aperture === "hollow" ? copy.traitApertureHollow : copy.traitApertureSolid,
+  ];
+  return parts.join(", ");
+}
+
 export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   const copy = useMemo(
-    () => t(typeof window !== "undefined" ? window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code : undefined),
+    () =>
+      t(
+        typeof window !== "undefined"
+          ? window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code
+          : undefined,
+      ),
     [],
   );
   const me = useMemo(() => readTelegramUserId(), []);
@@ -163,26 +189,47 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   if (!session) {
     return (
       <section>
-        <p>{error ?? "Loading session…"}</p>
+        <p className="ex-muted">{error ?? copy.waitingInitData}</p>
       </section>
     );
   }
 
-  const canGive = session.phase === "select_give" && !session.pieceInHand;
-  const canPlace = session.phase === "place_received" && !!session.pieceInHand;
-  const canDeclare =
-    session.phase === "select_give" ||
-    session.phase === "place_received" ||
-    session.phase === "pie_choice";
+  const moduleId = session.modules?.[0] || "classic4";
+  const surface = derivePlaySurfaceState({
+    status: session.status,
+    phase: session.phase,
+    turnSeat: session.turnSeat,
+    pieceInHand: session.pieceInHand,
+    seat0: session.seat0,
+    seat1: session.seat1,
+    outcome: session.outcome,
+    pieRule: session.pieRule,
+    viewerTelegramUserId: me,
+  });
+
+  const headlines: Record<string, string> = {
+    promptGive: copy.promptGive,
+    promptPlace: copy.promptPlace,
+    promptWait: copy.promptWait,
+    promptPieChoice: copy.promptPieChoice,
+    promptFinished: copy.promptFinished,
+    promptJoin: copy.promptJoin,
+    waitingOpponent: copy.waitingOpponent,
+  };
+  const headline = headlines[surface.headlineKey] ?? surface.headlineKey;
+  const labelFor = (id: string) => traitLabel(copy, id, moduleId);
 
   return (
     <section style={{ display: "grid", gap: "1rem" }}>
-      <p style={{ margin: 0 }}>
-        {session.status} · {session.phase}
-        {session.pieceInHand ? ` · hand ${session.pieceInHand}` : ""}
-        {session.outcome ? ` · ${session.outcome.type}` : ""}
-      </p>
-      {error ? <p style={{ color: "#e07070", margin: 0 }}>{error}</p> : null}
+      <ExSurface emphasized>
+        <p className="ex-headline">{headline}</p>
+        {session.outcome ? (
+          <p className="ex-muted" style={{ margin: "0.35rem 0 0" }}>
+            {copy.matchEnded}: {session.outcome.type}
+          </p>
+        ) : null}
+      </ExSurface>
+      {error ? <p className="ex-error">{error}</p> : null}
 
       <Settings
         missMode={session.missMode ?? "persistent"}
@@ -194,11 +241,12 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
 
       {session.status === "waiting" ? (
         <div style={{ display: "grid", gap: "0.6rem" }}>
-          {session.seat0?.telegramUserId === me ? (
+          {surface.expectedAction === "wait" && surface.viewerSeat === 0 ? (
             <>
-              <p style={{ margin: 0, opacity: 0.9 }}>{copy.waitingOpponent}</p>
-              <button
-                type="button"
+              <p className="ex-muted" style={{ margin: 0 }}>
+                {copy.waitingOpponent}
+              </p>
+              <ExPrimaryButton
                 disabled={busy}
                 onClick={async () => {
                   const link = `${window.location.origin}${window.location.pathname}?sessionId=${sessionId}`;
@@ -212,114 +260,131 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
                 }}
               >
                 {copied ? copy.linkCopied : copy.shareSession}
-              </button>
+              </ExPrimaryButton>
             </>
-          ) : (
-            <button type="button" disabled={busy} onClick={() => void join()}>
+          ) : null}
+          {surface.expectedAction === "join" ? (
+            <ExPrimaryButton disabled={busy} onClick={() => void join()}>
               {copy.joinSeat1}
-            </button>
-          )}
+            </ExPrimaryButton>
+          ) : null}
           {onLeave ? (
-            <button type="button" disabled={busy} onClick={onLeave}>
+            <ExSecondaryButton disabled={busy} onClick={onLeave}>
               {copy.backHome}
-            </button>
+            </ExSecondaryButton>
           ) : null}
         </div>
       ) : null}
 
-      {session.phase === "pie_choice" ? (
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button type="button" disabled={busy} onClick={() => void sendIntent({ type: "pie_choice", pieTake: true })}>
-            Pie: take opening
-          </button>
-          <button type="button" disabled={busy} onClick={() => void sendIntent({ type: "pie_choice", pieTake: false })}>
-            Pie: pass
-          </button>
+      {surface.showPieControls ? (
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <ExPrimaryButton
+            disabled={busy}
+            onClick={() => void sendIntent({ type: "pie_choice", pieTake: true })}
+          >
+            {copy.pieTake}
+          </ExPrimaryButton>
+          <ExSecondaryButton
+            disabled={busy}
+            onClick={() => void sendIntent({ type: "pie_choice", pieTake: false })}
+          >
+            {copy.piePass}
+          </ExSecondaryButton>
+        </div>
+      ) : null}
+
+      {session.pieceInHand ? (
+        <div className="ex-hand">
+          <span className="ex-muted">{copy.handLabel}</span>
+          <PieceToken
+            pieceId={session.pieceInHand}
+            moduleId={moduleId}
+            size="lg"
+            emphasis={surface.handEmphasis ? "inHand" : "none"}
+            label={labelFor(session.pieceInHand)}
+          />
         </div>
       ) : null}
 
       <Board
         board={session.board}
-        disabled={busy || !canPlace}
+        moduleId={moduleId}
+        declareCells={declareCells}
+        selectableOccupied={surface.showDeclareControls && !surface.showPlaceControls}
+        disabled={busy || (!surface.showPlaceControls && !surface.showDeclareControls)}
+        pieceLabel={labelFor}
         onCell={(i) => {
-          if (canPlace) void sendIntent({ type: "place", cellIndex: i });
-          else if (canDeclare) toggleDeclare(i);
+          if (surface.showPlaceControls && !session.board[i]) {
+            void sendIntent({ type: "place", cellIndex: i });
+          } else if (surface.showDeclareControls) {
+            toggleDeclare(i);
+          }
         }}
       />
 
       <div>
-        <h2 style={{ fontSize: "1rem", margin: "0 0 0.4rem" }}>Pool</h2>
+        <h2 className="ex-headline" style={{ fontSize: "1rem", margin: "0 0 0.4rem" }}>
+          {copy.pool}
+        </h2>
         <Pool
           pool={session.pool}
+          moduleId={moduleId}
           selected={selectedPiece}
-          disabled={busy || !canGive}
+          disabled={busy || !surface.showGiveControls}
           onSelect={setSelectedPiece}
+          pieceLabel={labelFor}
         />
-        {canGive ? (
-          <button
-            type="button"
+        {surface.showGiveControls ? (
+          <ExPrimaryButton
             disabled={busy || !selectedPiece}
-            style={{ marginTop: "0.5rem" }}
+            style={{ marginTop: "0.65rem" }}
             onClick={() => selectedPiece && void sendIntent({ type: "give", pieceId: selectedPiece })}
           >
-            Give selected
-          </button>
+            {copy.giveSelected}
+          </ExPrimaryButton>
         ) : null}
       </div>
 
-      {canDeclare ? (
+      {surface.showDeclareControls ? (
         <div>
-          <p style={{ margin: "0 0 0.4rem" }}>Declare cells: {declareCells.join(",") || "—"}</p>
-          <button
-            type="button"
+          <p className="ex-muted" style={{ margin: "0 0 0.4rem" }}>
+            {copy.declareCells}: {declareCells.join(",") || "—"}
+          </p>
+          <ExSecondaryButton
             disabled={busy || declareCells.length !== 4}
             onClick={() => void sendIntent({ type: "declare", setCells: declareCells })}
           >
-            Declare Quarto
-          </button>
+            {copy.declareQuarto}
+          </ExSecondaryButton>
         </div>
       ) : null}
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-        <button
-          type="button"
+        <ExSecondaryButton
           disabled={busy || session.status === "waiting" || session.status === "finished"}
           onClick={() => void sendIntent({ type: "resign" })}
         >
-          Resign
-        </button>
-        <button
-          type="button"
+          {copy.resign}
+        </ExSecondaryButton>
+        <ExSecondaryButton
           disabled={busy || session.status === "waiting" || session.status === "finished"}
           onClick={() => void sendIntent({ type: "claim_timeout" })}
         >
-          Claim timeout win
-        </button>
+          {copy.claimTimeout}
+        </ExSecondaryButton>
       </div>
 
       {session.status === "finished" ? (
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void rematch("offer")}
-          >
-            Offer rematch
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void rematch("accept")}
-          >
-            Accept rematch
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void rematch("decline")}
-          >
-            Decline
-          </button>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <ExPrimaryButton disabled={busy} onClick={() => void rematch("offer")}>
+            {copy.offerRematch}
+          </ExPrimaryButton>
+          <ExSecondaryButton disabled={busy} onClick={() => void rematch("accept")}>
+            {copy.acceptRematch}
+          </ExSecondaryButton>
+          <ExSecondaryButton disabled={busy} onClick={() => void rematch("decline")}>
+            {copy.declineRematch}
+          </ExSecondaryButton>
         </div>
       ) : null}
     </section>

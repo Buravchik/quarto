@@ -5,6 +5,7 @@ import { AchievementsPanel } from "../src/components/AchievementsPanel";
 import { GamePanel } from "../src/components/GamePanel";
 import { HomeLobby } from "../src/components/HomeLobby";
 import { t } from "../src/i18n";
+import { applySchemeToDocument, resolveScheme } from "../src/theme/scheme";
 import { useTelegramWebApp } from "../src/telegram/useTelegramWebApp";
 
 function readSessionId() {
@@ -28,46 +29,31 @@ export default function HomePage() {
     setSessionId(readSessionId());
   }, []);
 
+  useEffect(() => {
+    const scheme = resolveScheme();
+    applySchemeToDocument(scheme);
+  }, [ready]);
+
   function enterSession(next: string) {
     setSessionId(next);
     setSessionInUrl(next);
   }
 
   return (
-    <main
-      style={{
-        fontFamily: "Georgia, 'Times New Roman', serif",
-        padding: "1.5rem",
-        background:
-          "radial-gradient(ellipse at 20% 0%, #1a4a4e 0%, #123041 35%, #071018 70%)",
-        color: "#e8d5a3",
-        minHeight: "100vh",
-        boxSizing: "border-box",
-      }}
-    >
-      <h1
-        style={{
-          margin: "0 0 0.75rem",
-          letterSpacing: "0.04em",
-          fontSize: "2.4rem",
-          fontWeight: 700,
-        }}
-      >
-        {copy.appName}
-      </h1>
+    <main className="ex-app" data-expressive="true">
+      <h1 className="ex-brand">{copy.appName}</h1>
 
       {!ready ? (
-        <p style={{ opacity: 0.7 }}>{copy.waitingInitData}</p>
+        <p className="ex-muted">{copy.waitingInitData}</p>
       ) : !initData ? (
         <section style={{ maxWidth: "28rem", display: "grid", gap: "0.75rem" }}>
-          <p style={{ margin: 0, fontSize: "1.1rem", lineHeight: 1.45 }}>
+          <p className="ex-headline" style={{ fontWeight: 500 }}>
             {outsideTelegram ? copy.openInsideTelegram : copy.waitingInitData}
           </p>
-          <p style={{ margin: 0, opacity: 0.75 }}>{copy.openViaBotHint}</p>
-          <a
-            href="https://t.me/tgquarto_bot"
-            style={{ color: "#c49a2a", fontWeight: 700 }}
-          >
+          <p className="ex-muted" style={{ margin: 0 }}>
+            {copy.openViaBotHint}
+          </p>
+          <a href="https://t.me/tgquarto_bot" style={{ color: "var(--ex-primary)", fontWeight: 700 }}>
             @tgquarto_bot
           </a>
         </section>

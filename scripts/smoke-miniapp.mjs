@@ -102,6 +102,12 @@ try {
 }
 
 const bodyText = await page.locator("main").innerText().catch(() => "");
+const expressive = await page.locator("main[data-expressive='true']").count();
+const hasThemeVar = await page.evaluate(() => {
+  const main = document.querySelector("main.ex-app");
+  if (!main) return false;
+  return getComputedStyle(main).getPropertyValue("--ex-primary").trim().length > 0;
+});
 await browser.close();
 server.close();
 
@@ -111,5 +117,10 @@ if (!ok) {
   process.exit(1);
 }
 
-console.log("OK  Mini App lobby appeared after late initData (race regression)");
+if (!expressive || !hasThemeVar) {
+  console.error("FAIL: Expressive theme root missing (data-expressive / --ex-primary)");
+  process.exit(1);
+}
+
+console.log("OK  Mini App lobby + Expressive theme after late initData");
 process.exit(0);
