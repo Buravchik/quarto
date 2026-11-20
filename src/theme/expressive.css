@@ -58,12 +58,33 @@ body {
   background: var(--ex-surface);
   color: var(--ex-on-surface);
   font-family: var(--ex-font-body);
+  overflow-x: clip;
 }
 
 .ex-app {
+  /* Base gutters + iOS/Android safe-area + Telegram content safe-area (013). */
+  --ex-pad-x: 1.25rem;
+  --ex-pad-top: 1.25rem;
+  --ex-pad-bottom: 2rem;
   min-height: 100vh;
+  min-height: 100dvh;
   box-sizing: border-box;
-  padding: 1.25rem 1.1rem 2rem;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  padding-top: calc(
+    var(--ex-pad-top) + env(safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px)
+  );
+  padding-right: calc(
+    var(--ex-pad-x) + env(safe-area-inset-right, 0px) + var(--tg-content-safe-area-inset-right, 0px)
+  );
+  padding-bottom: calc(
+    var(--ex-pad-bottom) + env(safe-area-inset-bottom, 0px) +
+      var(--tg-content-safe-area-inset-bottom, 0px)
+  );
+  padding-left: calc(
+    var(--ex-pad-x) + env(safe-area-inset-left, 0px) + var(--tg-content-safe-area-inset-left, 0px)
+  );
   background:
     radial-gradient(ellipse 90% 55% at 12% -10%, rgba(42, 157, 143, 0.35), transparent 55%),
     radial-gradient(ellipse 70% 45% at 95% 5%, rgba(201, 162, 39, 0.18), transparent 50%),
