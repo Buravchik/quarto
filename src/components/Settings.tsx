@@ -5,11 +5,17 @@ type Props = {
   pieRule: boolean;
   locked: boolean;
   disabled?: boolean;
+  labels: {
+    sessionRules: string;
+    missVoid: string;
+    pieRule: string;
+    settingsLocked: string;
+  };
   onChange: (next: { missMode: "persistent" | "void"; pieRule: boolean }) => void;
 };
 
-/** Creator-only Miss/Pie checkboxes; disabled when settingsLocked. */
-export function Settings({ missMode, pieRule, locked, disabled, onChange }: Props) {
+/** Creator lobby Miss/Pie checkboxes; hide after match start (GamePanel). */
+export function Settings({ missMode, pieRule, locked, disabled, labels, onChange }: Props) {
   const readOnly = locked || disabled;
   return (
     <fieldset
@@ -18,7 +24,7 @@ export function Settings({ missMode, pieRule, locked, disabled, onChange }: Prop
       style={{ margin: 0 }}
     >
       <legend style={{ padding: "0 0.35rem", fontFamily: "var(--ex-font-display)" }}>
-        Session rules
+        {labels.sessionRules}
       </legend>
       <label style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.4rem" }}>
         <input
@@ -28,7 +34,7 @@ export function Settings({ missMode, pieRule, locked, disabled, onChange }: Prop
             onChange({ missMode: e.target.checked ? "void" : "persistent", pieRule })
           }
         />
-        Miss (Void) — skipped sets die after opponent places
+        {labels.missVoid}
       </label>
       <label style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
         <input
@@ -36,11 +42,11 @@ export function Settings({ missMode, pieRule, locked, disabled, onChange }: Prop
           checked={pieRule}
           onChange={(e) => onChange({ missMode, pieRule: e.target.checked })}
         />
-        Pie Rule — take/pass after first place
+        {labels.pieRule}
       </label>
       {locked ? (
         <p className="ex-muted" style={{ margin: "0.5rem 0 0" }}>
-          Locked after join
+          {labels.settingsLocked}
         </p>
       ) : null}
     </fieldset>

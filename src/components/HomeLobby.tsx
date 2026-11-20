@@ -16,6 +16,10 @@ type Props = {
     homeHint: string;
     creating: string;
     cardSent: string;
+    sessionRules: string;
+    missVoid: string;
+    pieRule: string;
+    settingsLocked: string;
   };
   onStarted: (sessionId: string) => void;
 };
@@ -82,6 +86,12 @@ export function HomeLobby({ apiBase, initData, copy, onStarted }: Props) {
         pieRule={pieRule}
         locked={false}
         disabled={busy}
+        labels={{
+          sessionRules: copy.sessionRules,
+          missVoid: copy.missVoid,
+          pieRule: copy.pieRule,
+          settingsLocked: copy.settingsLocked,
+        }}
         onChange={(next) => {
           setMissMode(next.missMode);
           setPieRule(next.pieRule);
