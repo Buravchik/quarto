@@ -231,13 +231,15 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
       </ExSurface>
       {error ? <p className="ex-error">{error}</p> : null}
 
-      <Settings
-        missMode={session.missMode ?? "persistent"}
-        pieRule={session.pieRule ?? false}
-        locked={session.settingsLocked}
-        disabled={busy || session.status !== "waiting"}
-        onChange={(next) => void saveSettings(next)}
-      />
+      {session.status === "waiting" ? (
+        <Settings
+          missMode={session.missMode ?? "persistent"}
+          pieRule={session.pieRule ?? false}
+          locked={session.settingsLocked}
+          disabled={busy}
+          onChange={(next) => void saveSettings(next)}
+        />
+      ) : null}
 
       {session.status === "waiting" ? (
         <div style={{ display: "grid", gap: "0.6rem" }}>

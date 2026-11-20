@@ -24,6 +24,7 @@ export function AchievementsPanel({ apiBase, initData, lang }: Props) {
   const [pinned, setPinned] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -77,50 +78,82 @@ export function AchievementsPanel({ apiBase, initData, lang }: Props) {
     }
   }
 
+  const title = ru ? "Достижения" : "Achievements";
+  const summary = `${unlocked.length}/${ACHIEVEMENT_IDS.length}`;
+
   return (
     <section className="ex-surface" style={{ marginTop: "1.25rem" }}>
-      <h2 className="ex-headline" style={{ fontSize: "1.05rem", margin: "0 0 0.5rem" }}>
-        {ru ? "Достижения" : "Achievements"}
-      </h2>
-      <p className="ex-muted" style={{ margin: "0 0 0.6rem", fontSize: "0.9rem" }}>
-        {ru ? "Закрепите до двух — покажутся на карточке." : "Pin up to two — shown on the challenge card."}
-      </p>
-      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.35rem" }}>
-        {ACHIEVEMENT_IDS.map((id) => {
-          const have = unlocked.includes(id);
-          const isPinned = pinned.includes(id);
-          const label = LABELS[id][ru ? "ru" : "en"];
-          return (
-            <li
-              key={id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "0.5rem",
-                opacity: have ? 1 : 0.45,
-                borderBottom: "1px solid var(--ex-outline)",
-                padding: "0.35rem 0",
-              }}
-            >
-              <span>
-                {isPinned ? "★ " : "☆ "}
-                {label}
-              </span>
-              <button
-                type="button"
-                className={isPinned ? "ex-btn ex-btn--primary" : "ex-btn ex-btn--secondary"}
-                disabled={busy || !have}
-                onClick={() => void togglePin(id)}
-                style={{ fontSize: "0.85rem", padding: "0.3rem 0.65rem" }}
-              >
-                {isPinned ? (ru ? "Открепить" : "Unpin") : ru ? "Закрепить" : "Pin"}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      {error ? <p className="ex-error" style={{ margin: "0.5rem 0 0" }}>{error}</p> : null}
+      <button
+        type="button"
+        className="ex-btn ex-btn--secondary"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "0.75rem",
+          textAlign: "left",
+        }}
+      >
+        <span className="ex-headline" style={{ fontSize: "1.05rem", margin: 0 }}>
+          {title}
+        </span>
+        <span className="ex-muted" style={{ fontSize: "0.9rem", whiteSpace: "nowrap" }}>
+          {summary} {open ? "▴" : "▾"}
+        </span>
+      </button>
+
+      {open ? (
+        <>
+          <p className="ex-muted" style={{ margin: "0.75rem 0 0.6rem", fontSize: "0.9rem" }}>
+            {ru
+              ? "Закрепите до двух — покажутся на карточке."
+              : "Pin up to two — shown on the challenge card."}
+          </p>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.35rem" }}>
+            {ACHIEVEMENT_IDS.map((id) => {
+              const have = unlocked.includes(id);
+              const isPinned = pinned.includes(id);
+              const label = LABELS[id][ru ? "ru" : "en"];
+              return (
+                <li
+                  key={id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "0.5rem",
+                    opacity: have ? 1 : 0.45,
+                    borderBottom: "1px solid var(--ex-outline)",
+                    padding: "0.35rem 0",
+                  }}
+                >
+                  <span>
+                    {isPinned ? "★ " : "☆ "}
+                    {label}
+                  </span>
+                  <button
+                    type="button"
+                    className={isPinned ? "ex-btn ex-btn--primary" : "ex-btn ex-btn--secondary"}
+                    disabled={busy || !have}
+                    onClick={() => void togglePin(id)}
+                    style={{ fontSize: "0.85rem", padding: "0.3rem 0.65rem" }}
+                  >
+                    {isPinned ? (ru ? "Открепить" : "Unpin") : ru ? "Закрепить" : "Pin"}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          {error ? (
+            <p className="ex-error" style={{ margin: "0.5rem 0 0" }}>
+              {error}
+            </p>
+          ) : null}
+        </>
+      ) : null}
     </section>
   );
 }
