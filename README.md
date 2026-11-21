@@ -1,6 +1,6 @@
 # Quarto
 
-Игра «Кварто» в Telegram на двоих: challenge-карточка, партия в Mini App.
+Игра «Кварто» в Telegram на двоих: challenge-карточка, партия в Mini App. Можно играть **с компьютером** (кнопка в Mini App) — та же классика, без второго аккаунта.
 
 - Бот: [@tgquarto_bot](https://t.me/tgquarto_bot)
 - Mini App: https://buravchik.github.io/quarto/

@@ -7,6 +7,7 @@ import {
   validatePins,
   type MatchOutcome,
 } from "../quarto/achievements";
+import { COMPUTER_USER_ID } from "./computerSeat";
 import type { TelegramWebAppUser } from "./initData";
 
 /** Human-readable label from Telegram identity (never prefer bare id when name exists). */
@@ -132,7 +133,7 @@ export async function grantMatchUnlocks(opts: {
     [0, opts.seat0UserId],
     [1, opts.seat1UserId],
   ] as const) {
-    if (!uid) continue;
+    if (!uid || uid === COMPUTER_USER_ID) continue;
     const ids = unlocksAfterMatch({
       seat,
       outcome: opts.outcome,

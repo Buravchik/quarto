@@ -38,6 +38,8 @@ export const sessions = pgTable("sessions", {
   pieRule: boolean("pie_rule").notNull().default(false),
   /** When true, Mini App may highlight legal Quarto lines during declare (010). */
   declareHints: boolean("declare_hints").notNull().default(false),
+  /** Vs-computer difficulty; null = human 1v1 (016). */
+  difficulty: varchar("difficulty", { length: 16 }),
   modules: jsonb("modules").$type<string[]>().notNull().default(["classic4"]),
   settingsLocked: boolean("settings_locked").notNull().default(false),
   seat0: jsonb("seat0").$type<{ telegramUserId: string; joinedAt: string } | null>(),

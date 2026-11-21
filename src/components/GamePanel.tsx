@@ -19,6 +19,8 @@ type Snapshot = {
   missMode: "persistent" | "void";
   pieRule: boolean;
   declareHints?: boolean;
+  difficulty?: "easy" | "normal" | "hard" | "expert" | null;
+  opponentKind?: "human" | "computer";
   settingsLocked: boolean;
   board: (string | null)[];
   pool: string[];
@@ -230,10 +232,11 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
     viewerTelegramUserId: me,
   });
 
+  const vsComputer = session.opponentKind === "computer";
   const headlines: Record<string, string> = {
     promptGive: copy.promptGive,
     promptPlace: copy.promptPlace,
-    promptWait: copy.promptWait,
+    promptWait: vsComputer ? copy.waitingComputer : copy.promptWait,
     promptPieChoice: copy.promptPieChoice,
     promptFinished: copy.promptFinished,
     promptJoin: copy.promptJoin,
@@ -241,6 +244,16 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   };
   const headline = headlines[surface.headlineKey] ?? surface.headlineKey;
   const labelFor = (id: string) => traitLabel(copy, id, moduleId);
+  const difficultyLabel =
+    session.difficulty === "easy"
+      ? copy.difficultyEasy
+      : session.difficulty === "hard"
+        ? copy.difficultyHard
+        : session.difficulty === "expert"
+          ? copy.difficultyExpert
+          : session.difficulty === "normal"
+            ? copy.difficultyNormal
+            : null;
 
   const showWaitingChrome = session.status === "waiting";
   const showWaitActions =
@@ -280,6 +293,12 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
 
   return (
     <section style={{ display: "grid", gap: "0.75rem" }}>
+      {vsComputer ? (
+        <p className="ex-muted" style={{ margin: 0, fontSize: "0.9rem" }}>
+          {copy.opponentComputer}
+          {difficultyLabel ? ` · ${difficultyLabel}` : ""}
+        </p>
+      ) : null}
       <ExSurface emphasized>
         <div className={waitingOneRow ? "ex-waiting-row" : undefined}>
           <p className={`ex-headline${waitingOneRow ? " ex-waiting-headline" : ""}`}>
@@ -469,12 +488,19 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
           {copy.resign}
         </ExSecondaryButton>
         {(() => {
+          const stallingIsComputer =
+            session.turnSeat === 0
+              ? session.seat0?.telegramUserId === "computer"
+              : session.turnSeat === 1
+                ? session.seat1?.telegramUserId === "computer"
+                : false;
           const waitingSeat =
             surface.viewerSeat != null &&
             session.turnSeat != null &&
             surface.viewerSeat !== session.turnSeat &&
             session.status !== "waiting" &&
-            session.status !== "finished";
+            session.status !== "finished" &&
+            !stallingIsComputer;
           if (!waitingSeat) return null;
           const gate = timeoutReady(session.turnNotifiedAt, new Date(nowMs));
           if (gate.ready) {
@@ -501,14 +527,18 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
       {session.status === "finished" ? (
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <ExPrimaryButton disabled={busy} onClick={() => void rematch("offer")}>
-            {copy.offerRematch}
+            {vsComputer ? copy.rematchComputer : copy.offerRematch}
           </ExPrimaryButton>
-          <ExSecondaryButton disabled={busy} onClick={() => void rematch("accept")}>
-            {copy.acceptRematch}
-          </ExSecondaryButton>
-          <ExSecondaryButton disabled={busy} onClick={() => void rematch("decline")}>
-            {copy.declineRematch}
-          </ExSecondaryButton>
+          {!vsComputer ? (
+            <>
+              <ExSecondaryButton disabled={busy} onClick={() => void rematch("accept")}>
+                {copy.acceptRematch}
+              </ExSecondaryButton>
+              <ExSecondaryButton disabled={busy} onClick={() => void rematch("decline")}>
+                {copy.declineRematch}
+              </ExSecondaryButton>
+            </>
+          ) : null}
         </div>
       ) : null}
     </section>
