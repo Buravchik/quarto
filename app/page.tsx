@@ -10,7 +10,11 @@ import { useTelegramWebApp } from "../src/telegram/useTelegramWebApp";
 
 function readSessionId() {
   if (typeof window === "undefined") return "";
-  return new URLSearchParams(window.location.search).get("sessionId") ?? "";
+  const fromQuery = new URLSearchParams(window.location.search).get("sessionId");
+  if (fromQuery) return fromQuery;
+  // Opened via t.me/.../?startapp=<sessionId> (inline / group deep link)
+  const fromStart = window.Telegram?.WebApp?.initDataUnsafe?.start_param?.trim();
+  return fromStart ?? "";
 }
 
 function setSessionInUrl(sessionId: string) {
@@ -26,8 +30,9 @@ export default function HomePage() {
   const copy = t(lang);
 
   useEffect(() => {
-    setSessionId(readSessionId());
-  }, []);
+    if (!ready) return;
+    setSessionId((prev) => prev || readSessionId());
+  }, [ready]);
 
   useEffect(() => {
     const scheme = resolveScheme();

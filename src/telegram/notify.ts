@@ -5,7 +5,7 @@ import { t } from "../i18n";
 import { timeoutReady } from "../quarto/timeout";
 import { cardView, formatCardMessage, preferredOpenSessionId } from "./cards";
 import { COMPUTER_USER_ID } from "./computerSeat";
-import { webAppOpenButton } from "./miniAppUrl";
+import { openMiniAppButton } from "./miniAppUrl";
 import { getSession, type Seat } from "./sessions";
 
 type ReplyMarkup = { reply_markup?: { inline_keyboard: Record<string, unknown>[][] } };
@@ -46,9 +46,13 @@ async function langFor(userId: string | undefined): Promise<string> {
   }
 }
 
-function cardActionKeyboard(sessionId: string | undefined, lang?: string) {
+function cardActionKeyboard(
+  sessionId: string | undefined,
+  lang?: string,
+  mode: "web_app" | "url" = "web_app",
+) {
   const copy = t(lang);
-  const open = sessionId ? webAppOpenButton(copy.openMiniApp, sessionId) : null;
+  const open = sessionId ? openMiniAppButton(copy.openMiniApp, sessionId, mode) : null;
   const drop = { text: copy.dropInChat, switch_inline_query: "" };
   const rows: Record<string, unknown>[][] = [];
   if (open) rows.push([open]);
@@ -67,7 +71,11 @@ async function refreshCardMessage(cardId: string) {
   const lang = await langFor(card.ownerTelegramUserId);
   const text = formatCardMessage(view, lang);
   const openSessionId = preferredOpenSessionId(view.slots);
-  const extra = cardActionKeyboard(openSessionId, lang);
+  // Inline (and typically group) messages cannot use web_app — use t.me deep link.
+  const mode = card.inlineMessageId || card.surface === "group" || card.surface === "inline"
+    ? "url"
+    : "web_app";
+  const extra = cardActionKeyboard(openSessionId, lang, mode);
   try {
     if (card.inlineMessageId) {
       await transport.editInlineMessageText(card.inlineMessageId, text, extra);
@@ -82,7 +90,7 @@ async function refreshCardMessage(cardId: string) {
 async function dmWithOpen(userId: string | undefined, text: string, sessionId: string, lang?: string) {
   if (!transport || !userId || userId === COMPUTER_USER_ID) return;
   const copy = t(lang);
-  const btn = webAppOpenButton(copy.openMiniApp, sessionId);
+  const btn = openMiniAppButton(copy.openMiniApp, sessionId, "web_app");
   const extra = btn
     ? { reply_markup: { inline_keyboard: [[btn]] } }
     : undefined;
@@ -106,7 +114,7 @@ export async function sendChallengeCardDm(opts: {
     ? formatCardMessage(view, opts.lang)
     : t(opts.lang).cardTitle;
   const copy = t(opts.lang);
-  const btn = webAppOpenButton(copy.openMiniApp, opts.sessionId);
+  const btn = openMiniAppButton(copy.openMiniApp, opts.sessionId, "web_app");
   const drop = { text: copy.dropInChat, switch_inline_query: "" };
   const keyboard = btn ? [[btn], [drop]] : [[drop]];
   try {

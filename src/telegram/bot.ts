@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
-import { Markup, Telegraf } from "telegraf";
+import { Telegraf } from "telegraf";
 import { t } from "../i18n";
 import { handleApi, registerOpenApiStubs } from "./api/router";
 import {
@@ -11,7 +11,7 @@ import {
   setCardMessage,
 } from "./cards";
 import { loadEnvFile } from "./http";
-import { miniAppUrl } from "./miniAppUrl";
+import { miniAppTgLink, openMiniAppButton, setBotUsername } from "./miniAppUrl";
 import { setNotifyTransport } from "./notify";
 import { displayNameFromTelegram } from "./players";
 
@@ -30,14 +30,23 @@ const ALLOWED_UPDATES = [
   "chosen_inline_result",
 ] as const;
 
-function playKeyboard(sessionId: string, langCode?: string) {
+/** Group/inline cards need a t.me url button; DM with the bot can use web_app. */
+function playKeyboard(
+  sessionId: string,
+  langCode?: string,
+  mode: "web_app" | "url" = "web_app",
+) {
   const copy = t(langCode);
-  const url = miniAppUrl(sessionId);
-  if (!url) return undefined;
-  return Markup.inlineKeyboard([
-    [Markup.button.webApp(copy.openMiniApp, url)],
-    [Markup.button.switchToChat(copy.dropInChat, "")],
-  ]);
+  const open = openMiniAppButton(copy.openMiniApp, sessionId, mode);
+  if (!open) return undefined;
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [open],
+        [{ text: copy.dropInChat, switch_inline_query: "" }],
+      ],
+    },
+  };
 }
 
 if (bot) {
@@ -71,13 +80,16 @@ if (bot) {
 
   bot.start(async (ctx) => {
     const copy = t(ctx.from?.language_code);
-    const openUrl = miniAppUrl();
-    const rows = [];
-    if (openUrl) {
-      rows.push([Markup.button.webApp(copy.openMiniAppStart, openUrl)]);
-    }
-    rows.push([Markup.button.switchToChat(copy.dropInChat, "")]);
-    await ctx.reply(copy.startBlurb, Markup.inlineKeyboard(rows));
+    const open = openMiniAppButton(copy.openMiniAppStart, undefined, "web_app");
+    const rows: Record<string, unknown>[][] = [];
+    if (open) rows.push([open]);
+    rows.push([{ text: copy.dropInChat, switch_inline_query: "" }]);
+    await ctx.reply(
+      copy.startBlurb,
+      { reply_markup: { inline_keyboard: rows } } as unknown as Parameters<
+        typeof ctx.reply
+      >[1],
+    );
   });
 
   bot.command("new", async (ctx) => {
@@ -95,7 +107,14 @@ if (bot) {
     const text = view
       ? formatCardMessage(view, ctx.from.language_code)
       : t(ctx.from.language_code).cardTitle;
-    const msg = await ctx.reply(text, playKeyboard(created.sessionId, ctx.from.language_code));
+    // web_app only works in private chats with the bot; groups need t.me deep links
+    const mode = surface === "dm" ? "web_app" : "url";
+    const msg = await ctx.reply(
+      text,
+      playKeyboard(created.sessionId, ctx.from.language_code, mode) as unknown as Parameters<
+        typeof ctx.reply
+      >[1],
+    );
     await setCardMessage(created.cardId, String(chat.id), msg.message_id);
   });
 
@@ -105,11 +124,15 @@ if (bot) {
 
   bot.on("inline_query", async (ctx) => {
     const copy = t(ctx.from.language_code);
-    const openUrl = miniAppUrl() ?? "https://t.me";
+    // Placeholder keyboard must be a url (not web_app) so Telegram issues inline_message_id
+    // and the result works when shared into another person's chat.
+    const open =
+      openMiniAppButton(copy.openMiniApp, undefined, "url") ??
+      (miniAppTgLink() ? { text: copy.openMiniApp, url: miniAppTgLink()! } : null);
     await ctx.answerInlineQuery(
       [
         {
-          type: "article",
+          type: "article" as const,
           id: randomUUID(),
           title: copy.inlineTitle,
           description: copy.inlineDescription,
@@ -117,10 +140,14 @@ if (bot) {
             message_text: copy.inlinePlaceholder,
           },
           reply_markup: {
-            inline_keyboard: [[{ text: copy.openMiniApp, web_app: { url: openUrl } }]],
+            inline_keyboard: [
+              [
+                open ?? { text: copy.openMiniApp, url: "https://t.me" },
+              ],
+            ],
           },
         },
-      ],
+      ] as unknown as Parameters<typeof ctx.answerInlineQuery>[0],
       { cache_time: 0, is_personal: true },
     );
   });
@@ -141,15 +168,12 @@ if (bot) {
       const text = view
         ? formatCardMessage(view, ctx.from.language_code)
         : copy.cardTitle;
-      const openUrl = miniAppUrl(created.sessionId);
-      const extra =
-        openUrl != null
-          ? {
-              reply_markup: {
-                inline_keyboard: [[{ text: copy.openMiniApp, web_app: { url: openUrl } }]],
-              },
-            }
-          : undefined;
+      const open = openMiniAppButton(copy.openMiniApp, created.sessionId, "url");
+      const extra = open
+        ? ({ reply_markup: { inline_keyboard: [[open]] } } as unknown as Parameters<
+            typeof bot.telegram.editMessageText
+          >[4])
+        : undefined;
       await bot.telegram.editMessageText(undefined, undefined, inlineMessageId, text, extra);
     } catch (err) {
       console.error("chosen_inline_result failed", err);
@@ -187,17 +211,30 @@ server.listen(port, () => {
   console.log(`Quarto listening on :${port}`);
 });
 
+async function rememberBotUsername() {
+  if (!bot) return;
+  try {
+    const me = await bot.telegram.getMe();
+    setBotUsername(me.username);
+    console.log("bot username", me.username);
+  } catch (err) {
+    console.warn("getMe failed", err);
+  }
+}
+
 const webhook = process.env.WEBHOOK_URL;
 if (bot && !webhook) {
-  bot
-    .launch({ allowedUpdates: [...ALLOWED_UPDATES] })
+  rememberBotUsername()
+    .then(() => bot.launch({ allowedUpdates: [...ALLOWED_UPDATES] }))
     .then(() => console.log("Telegraf long polling (incl. inline)"))
     .catch((err) => console.error("bot.launch failed", err));
   process.once("SIGINT", () => bot.stop("SIGINT"));
   process.once("SIGTERM", () => bot.stop("SIGTERM"));
 } else if (bot && webhook) {
-  bot.telegram
-    .setWebhook(webhook, { allowed_updates: [...ALLOWED_UPDATES] })
+  rememberBotUsername()
+    .then(() =>
+      bot.telegram.setWebhook(webhook, { allowed_updates: [...ALLOWED_UPDATES] }),
+    )
     .then((ok) => console.log("setWebhook", ok, "→", webhook))
     .catch((err) => console.error("setWebhook failed", err));
 } else {
