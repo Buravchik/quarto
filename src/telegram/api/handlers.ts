@@ -70,7 +70,9 @@ export async function postCardHandler(req: IncomingMessage, res: ServerResponse)
     const user = auth(body.initData);
     const displayName = displayNameFromInitUser(user.user);
     const lang = user.user.language_code;
-    if (body.vsComputer && !isDifficulty(body.difficulty)) {
+    const difficulty =
+      body.vsComputer && isDifficulty(body.difficulty) ? body.difficulty : undefined;
+    if (body.vsComputer && !difficulty) {
       return sendJson(res, 400, { error: "illegal_move" });
     }
     const created = await createCard({
@@ -82,7 +84,7 @@ export async function postCardHandler(req: IncomingMessage, res: ServerResponse)
       displayName,
       language: lang,
       vsComputer: body.vsComputer,
-      difficulty: body.vsComputer ? body.difficulty : undefined,
+      difficulty,
     });
     // Mini App lobby start → Telegram-native card DM (not orphan session)
     const { sendChallengeCardDm } = await import("../notify");
