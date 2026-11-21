@@ -544,6 +544,11 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
               </ExSecondaryButton>
             </>
           ) : null}
+          {onLeave ? (
+            <ExSecondaryButton disabled={busy} onClick={onLeave}>
+              {copy.backHome}
+            </ExSecondaryButton>
+          ) : null}
         </div>
       ) : null}
     </section>
