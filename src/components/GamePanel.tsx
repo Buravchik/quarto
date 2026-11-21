@@ -314,8 +314,16 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
                 title={copy.shareSession}
                 onClick={() => {
                   const tg = window.Telegram?.WebApp;
+                  // Sudoku pattern: pass chat types so Telegram opens a picker
+                  // (without it, the query is inserted into the current bot DM).
                   if (tg && typeof tg.switchInlineQuery === "function") {
-                    tg.switchInlineQuery("");
+                    tg.switchInlineQuery("", ["users", "groups"]);
+                    return;
+                  }
+                  if (tg && typeof tg.openTelegramLink === "function") {
+                    const link = `${window.location.origin}${window.location.pathname}?sessionId=${sessionId}`;
+                    const share = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(copy.shareSession)}`;
+                    tg.openTelegramLink(share);
                     return;
                   }
                   setError(copy.cardSent);
