@@ -39,6 +39,9 @@ export function PieceToken({
 
   const fill = tone === "light" ? "var(--ex-piece-light)" : "var(--ex-piece-dark)";
   const stroke = "var(--ex-piece-stroke)";
+  // Hole must contrast with the body: surface-colored cutouts vanish on light pieces.
+  const holeFill =
+    tone === "light" ? "var(--ex-piece-hollow-on-light)" : "var(--ex-piece-hollow-on-dark)";
   const bodyH = stature === "tall" ? 78 : 48;
   const bodyY = stature === "tall" ? 14 : 36;
   const rx = plan === "round" ? 22 : 6;
@@ -78,7 +81,14 @@ export function PieceToken({
       />
       {aperture === "hollow" ? (
         plan === "round" ? (
-          <circle cx={50} cy={bodyY + bodyH / 2} r={holeR} fill="var(--ex-surface)" />
+          <circle
+            cx={50}
+            cy={bodyY + bodyH / 2}
+            r={holeR}
+            fill={holeFill}
+            stroke={stroke}
+            strokeWidth={2.5}
+          />
         ) : (
           <rect
             x={50 - holeR}
@@ -86,7 +96,9 @@ export function PieceToken({
             width={holeR * 2}
             height={holeR * 2}
             rx={2}
-            fill="var(--ex-surface)"
+            fill={holeFill}
+            stroke={stroke}
+            strokeWidth={2.5}
           />
         )
       ) : null}
