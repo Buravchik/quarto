@@ -12,6 +12,8 @@ type Props = {
   hintCells?: number[];
   /** When true, occupied cells stay clickable (declare selection). */
   selectableOccupied?: boolean;
+  /** When true, empty cells stay clickable (place). */
+  selectableEmpty?: boolean;
   pieceLabel?: (pieceId: string) => string;
 };
 
@@ -23,6 +25,7 @@ export function Board({
   declareCells = [],
   hintCells = [],
   selectableOccupied = false,
+  selectableEmpty = false,
   pieceLabel,
 }: Props) {
   return (
@@ -31,7 +34,9 @@ export function Board({
         const occupied = !!piece;
         const declaring = declareCells.includes(i);
         const hinted = !declaring && hintCells.includes(i);
-        const cellDisabled = disabled || (occupied && !selectableOccupied);
+        const cellDisabled =
+          disabled ||
+          (occupied ? !selectableOccupied : !selectableEmpty);
         return (
           <button
             key={i}

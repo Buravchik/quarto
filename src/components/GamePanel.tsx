@@ -184,6 +184,7 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   }
 
   function toggleDeclare(i: number) {
+    if (!session?.board[i]) return;
     setDeclareCells((prev) =>
       prev.includes(i) ? prev.filter((x) => x !== i) : prev.length < 4 ? [...prev, i] : prev,
     );
@@ -441,13 +442,17 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
         moduleId={moduleId}
         declareCells={declareCells}
         hintCells={hintCells}
-        selectableOccupied={surface.showDeclareControls && !surface.showPlaceControls}
+        selectableOccupied={surface.showDeclareControls}
+        selectableEmpty={surface.showPlaceControls}
         disabled={busy || (!surface.showPlaceControls && !surface.showDeclareControls)}
         pieceLabel={labelFor}
         onCell={(i) => {
           if (surface.showPlaceControls && !session.board[i]) {
             void sendIntent({ type: "place", cellIndex: i });
-          } else if (surface.showDeclareControls) {
+            return;
+          }
+          // Declare: only occupied cells (Quarto lines never include empties)
+          if (surface.showDeclareControls && session.board[i]) {
             if (hintSets.length > 0) {
               selectDeclareFromHints(i, hintSets);
             } else {
