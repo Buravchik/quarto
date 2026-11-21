@@ -15,6 +15,8 @@
   --ex-piece-light: #f2e6c9;
   --ex-piece-dark: #1a2e38;
   --ex-piece-stroke: #8eb8b0;
+  --ex-piece-hollow-on-light: #1a2e38;
+  --ex-piece-hollow-on-dark: #f2e6c9;
   --ex-radius-sm: 0.5rem;
   --ex-radius-md: 1rem;
   --ex-radius-lg: 1.75rem;
@@ -41,6 +43,8 @@
   --ex-piece-light: #fff8e7;
   --ex-piece-dark: #243840;
   --ex-piece-stroke: #1b7a6e;
+  --ex-piece-hollow-on-light: #243840;
+  --ex-piece-hollow-on-dark: #fff8e7;
   color-scheme: light;
 }
 
