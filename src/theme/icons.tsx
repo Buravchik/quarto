@@ -79,3 +79,17 @@ export function IconCheck(props: IconProps) {
     </svg>
   );
 }
+
+/** Compact help / rules. */
+export function IconHelp(props: IconProps) {
+  const { title, rest } = base(props);
+  return (
+    <svg viewBox="0 0 24 24" width="1.25em" height="1.25em" aria-hidden={title ? undefined : true} {...rest}>
+      {title ? <title>{title}</title> : null}
+      <path
+        fill="currentColor"
+        d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 15a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm1.1-4.85-.35.2c-.55.31-.75.52-.75 1.15h-2v-.35c0-.95.45-1.55 1.25-2.02l.5-.3c.5-.3.7-.55.7-1.05 0-.55-.4-.95-1.05-.95-.7 0-1.15.4-1.25 1.05H8.05C8.3 8.25 9.55 7.2 11.4 7.2c1.85 0 3.15 1.05 3.15 2.55 0 .9-.4 1.55-1.45 2.4z"
+      />
+    </svg>
+  );
+}
