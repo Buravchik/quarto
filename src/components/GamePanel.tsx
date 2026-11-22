@@ -9,9 +9,10 @@ import { legalDeclareHintSets } from "../quarto/miss";
 import { sharedTraitLabelKeys } from "../quarto/sharedTraits";
 import { formatTimeoutCountdown, timeoutReady } from "../quarto/timeout";
 import { ExPrimaryButton, ExSecondaryButton, ExSurface } from "../theme/components";
-import { IconPersonAdd, IconReplay, IconShare } from "../theme/icons";
+import { IconHelp, IconPersonAdd, IconReplay, IconShare } from "../theme/icons";
 import { Board } from "./Board";
 import { Pool } from "./Pool";
+import { RulesPanel } from "./RulesPanel";
 
 type Snapshot = {
   sessionId: string;
@@ -84,6 +85,7 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   const refresh = useCallback(async () => {
@@ -338,75 +340,85 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
         </p>
       ) : null}
       <ExSurface emphasized>
-        <div className={waitingOneRow ? "ex-waiting-row" : undefined}>
+        <div className={waitingOneRow ? "ex-waiting-row" : "ex-play-header"}>
           <p className={`ex-headline${waitingOneRow ? " ex-waiting-headline" : ""}`}>
             {headline}
           </p>
-          {showWaitActions ? (
-            <div className="ex-waiting-actions">
-              <ExPrimaryButton
-                className="ex-icon-btn"
-                disabled={busy}
-                aria-label={copy.shareSession}
-                title={copy.shareSession}
-                onClick={() => {
-                  const tg = window.Telegram?.WebApp;
-                  // Sudoku pattern: pass chat types so Telegram opens a picker
-                  // (without it, the query is inserted into the current bot DM).
-                  if (tg && typeof tg.switchInlineQuery === "function") {
-                    tg.switchInlineQuery("", ["users", "groups"]);
-                    return;
-                  }
-                  if (tg && typeof tg.openTelegramLink === "function") {
-                    const link = `${window.location.origin}${window.location.pathname}?sessionId=${sessionId}`;
-                    const share = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(copy.shareSession)}`;
-                    tg.openTelegramLink(share);
-                    return;
-                  }
-                  setError(copy.cardSent);
-                }}
-              >
-                <IconShare />
-              </ExPrimaryButton>
-              {onLeave ? (
-                <ExSecondaryButton
+          <div className="ex-waiting-actions">
+            <ExSecondaryButton
+              className={`ex-icon-btn ex-icon-btn--ghost${rulesOpen ? " ex-icon-btn--active" : ""}`}
+              aria-label={copy.rulesButton}
+              title={copy.rulesButton}
+              aria-expanded={rulesOpen}
+              aria-controls="quarto-rules-panel"
+              onClick={() => setRulesOpen((v) => !v)}
+            >
+              <IconHelp />
+            </ExSecondaryButton>
+            {showWaitActions ? (
+              <>
+                <ExPrimaryButton
                   className="ex-icon-btn"
                   disabled={busy}
-                  aria-label={copy.backHome}
-                  title={copy.backHome}
-                  onClick={onLeave}
+                  aria-label={copy.shareSession}
+                  title={copy.shareSession}
+                  onClick={() => {
+                    const tg = window.Telegram?.WebApp;
+                    // Sudoku pattern: pass chat types so Telegram opens a picker
+                    // (without it, the query is inserted into the current bot DM).
+                    if (tg && typeof tg.switchInlineQuery === "function") {
+                      tg.switchInlineQuery("", ["users", "groups"]);
+                      return;
+                    }
+                    if (tg && typeof tg.openTelegramLink === "function") {
+                      const link = `${window.location.origin}${window.location.pathname}?sessionId=${sessionId}`;
+                      const share = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(copy.shareSession)}`;
+                      tg.openTelegramLink(share);
+                      return;
+                    }
+                    setError(copy.cardSent);
+                  }}
                 >
-                  <IconReplay />
-                </ExSecondaryButton>
-              ) : null}
-            </div>
-          ) : null}
-          {showJoinActions ? (
-            <div className="ex-waiting-actions">
-              <ExPrimaryButton
-                className="ex-icon-btn"
-                disabled={busy}
-                aria-label={copy.joinSeat1}
-                title={copy.joinSeat1}
-                onClick={() => void join()}
-              >
-                <IconPersonAdd />
-              </ExPrimaryButton>
-              {onLeave ? (
-                <ExSecondaryButton
+                  <IconShare />
+                </ExPrimaryButton>
+                {onLeave ? (
+                  <ExSecondaryButton
+                    className="ex-icon-btn"
+                    disabled={busy}
+                    aria-label={copy.backHome}
+                    title={copy.backHome}
+                    onClick={onLeave}
+                  >
+                    <IconReplay />
+                  </ExSecondaryButton>
+                ) : null}
+              </>
+            ) : null}
+            {showJoinActions ? (
+              <>
+                <ExPrimaryButton
                   className="ex-icon-btn"
                   disabled={busy}
-                  aria-label={copy.backHome}
-                  title={copy.backHome}
-                  onClick={onLeave}
+                  aria-label={copy.joinSeat1}
+                  title={copy.joinSeat1}
+                  onClick={() => void join()}
                 >
-                  <IconReplay />
-                </ExSecondaryButton>
-              ) : null}
-            </div>
-          ) : null}
-          {showLeaveOnly ? (
-            <div className="ex-waiting-actions">
+                  <IconPersonAdd />
+                </ExPrimaryButton>
+                {onLeave ? (
+                  <ExSecondaryButton
+                    className="ex-icon-btn"
+                    disabled={busy}
+                    aria-label={copy.backHome}
+                    title={copy.backHome}
+                    onClick={onLeave}
+                  >
+                    <IconReplay />
+                  </ExSecondaryButton>
+                ) : null}
+              </>
+            ) : null}
+            {showLeaveOnly ? (
               <ExSecondaryButton
                 className="ex-icon-btn"
                 disabled={busy}
@@ -416,9 +428,31 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
               >
                 <IconReplay />
               </ExSecondaryButton>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
+        {rulesOpen ? (
+          <div id="quarto-rules-panel">
+            <RulesPanel
+              missMode={session.missMode}
+              pieRule={session.pieRule}
+              declareHints={session.declareHints ?? false}
+              copy={{
+                rulesTitle: copy.rulesTitle,
+                rulesClassic: copy.rulesClassic,
+                rulesTraits: copy.rulesTraits,
+                rulesDeclare: copy.rulesDeclare,
+                sessionRules: copy.sessionRules,
+                missVoid: copy.missVoid,
+                missPersistent: copy.missPersistent,
+                pieRule: copy.pieRule,
+                declareHints: copy.declareHints,
+                rulesOn: copy.rulesOn,
+                rulesOff: copy.rulesOff,
+              }}
+            />
+          </div>
+        ) : null}
         {session.outcome && session.outcome.type !== "win" ? (
           <p className="ex-muted" style={{ margin: "0.35rem 0 0" }}>
             {copy.matchEnded}: {session.outcome.type}

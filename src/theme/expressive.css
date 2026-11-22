@@ -209,6 +209,12 @@ body {
   background: color-mix(in srgb, var(--ex-secondary) 12%, transparent);
 }
 
+.ex-icon-btn--active {
+  color: var(--ex-secondary);
+  border-color: color-mix(in srgb, var(--ex-secondary) 45%, var(--ex-outline));
+  background: color-mix(in srgb, var(--ex-secondary) 14%, transparent);
+}
+
 .ex-actions-row {
   display: flex;
   flex-wrap: wrap;
@@ -357,6 +363,48 @@ body {
 .ex-win-banner .ex-headline {
   margin: 0;
   font-size: 1.25rem;
+}
+
+.ex-rules-panel {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--ex-radius-sm);
+  border: 1px solid var(--ex-outline);
+  background: color-mix(in srgb, var(--ex-surface-elevated) 80%, var(--ex-surface));
+}
+
+.ex-rules-panel__title {
+  margin: 0;
+  font-family: var(--ex-font-display);
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.ex-rules-panel__list {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--ex-on-surface-muted);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.ex-rules-panel__list li + li {
+  margin-top: 0.3rem;
+}
+
+.ex-play-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.ex-play-header .ex-headline {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .ex-declare-banner {

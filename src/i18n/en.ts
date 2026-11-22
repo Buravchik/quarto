@@ -22,8 +22,19 @@ export const en = {
   waiting: "waiting",
   joinSeat1: "Join as seat 1",
   missVoid: "Miss (Void) — skipped sets die after opponent places",
+  missPersistent: "Miss (Persistent) — only the placer may declare after their place",
   pieRule: "Pie Rule — take/pass after first place",
   declareHints: "Declare hints — highlight legal Quarto lines",
+  rulesButton: "Rules",
+  rulesTitle: "How to play",
+  rulesClassic:
+    "Each turn: give your opponent a piece from the pool, then they place it on an empty cell.",
+  rulesTraits:
+    "Pieces differ by four traits: light/dark, tall/short, round/square, solid/hollow.",
+  rulesDeclare:
+    "Quarto is four in a row, column, or diagonal that share at least one trait. Declare after you place (false calls are rejected).",
+  rulesOn: "on",
+  rulesOff: "off",
   settingsLocked: "Locked after join",
   sessionRules: "Session rules",
   pool: "Pool",
