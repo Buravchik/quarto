@@ -10,6 +10,10 @@ type Props = {
   declareCells?: number[];
   /** Soft highlight for legal hint lines (010). */
   hintCells?: number[];
+  /** Computer last place (017) — vs-computer only. */
+  lastMoveCell?: number | null;
+  /** Declared Quarto cells after a validated win (017). */
+  winCells?: number[];
   /** When true, occupied cells stay clickable (declare selection). */
   selectableOccupied?: boolean;
   /** When true, empty cells stay clickable (place). */
@@ -24,6 +28,8 @@ export function Board({
   disabled,
   declareCells = [],
   hintCells = [],
+  lastMoveCell = null,
+  winCells = [],
   selectableOccupied = false,
   selectableEmpty = false,
   pieceLabel,
@@ -33,7 +39,9 @@ export function Board({
       {board.map((piece, i) => {
         const occupied = !!piece;
         const declaring = declareCells.includes(i);
-        const hinted = !declaring && hintCells.includes(i);
+        const winning = !declaring && winCells.includes(i);
+        const lastMove = !declaring && !winning && lastMoveCell === i;
+        const hinted = !declaring && !winning && !lastMove && hintCells.includes(i);
         const cellDisabled =
           disabled ||
           (occupied ? !selectableOccupied : !selectableEmpty);
@@ -41,7 +49,7 @@ export function Board({
           <button
             key={i}
             type="button"
-            className={`ex-cell ${occupied ? "ex-cell--occupied" : ""} ${declaring ? "ex-cell--declare" : ""} ${hinted ? "ex-cell--hint" : ""}`.trim()}
+            className={`ex-cell ${occupied ? "ex-cell--occupied" : ""} ${declaring ? "ex-cell--declare" : ""} ${winning ? "ex-cell--win" : ""} ${lastMove ? "ex-cell--last-move" : ""} ${hinted ? "ex-cell--hint" : ""}`.trim()}
             disabled={cellDisabled}
             onClick={() => onCell?.(i)}
             aria-label={occupied ? pieceLabel?.(piece!) ?? piece! : `Empty cell ${i + 1}`}

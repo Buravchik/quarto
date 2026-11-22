@@ -6,6 +6,7 @@ import { decodeChannels } from "../pieces/decode";
 import { PieceToken } from "../pieces/PieceToken";
 import { derivePlaySurfaceState } from "../play/derivePlaySurfaceState";
 import { legalDeclareHintSets } from "../quarto/miss";
+import { sharedTraitLabelKeys } from "../quarto/sharedTraits";
 import { formatTimeoutCountdown, timeoutReady } from "../quarto/timeout";
 import { ExPrimaryButton, ExSecondaryButton, ExSurface } from "../theme/components";
 import { IconPersonAdd, IconReplay, IconShare } from "../theme/icons";
@@ -27,13 +28,14 @@ type Snapshot = {
   pieceInHand: string | null;
   turnSeat: 0 | 1 | null;
   turnNotifiedAt: string | null;
-  outcome: { type: string; winnerSeat?: number } | null;
+  outcome: { type: string; winnerSeat?: number; declaredSet?: number[] } | null;
   seat0: { telegramUserId: string } | null;
   seat1: { telegramUserId: string } | null;
   modules?: string[];
   voidedSets?: number[][];
   pendingVoidSets?: number[][];
   lastPlacedCell?: number | null;
+  lastPlacerSeat?: 0 | 1 | null;
 };
 
 type Props = {
@@ -234,12 +236,47 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   });
 
   const vsComputer = session.opponentKind === "computer";
+  const computerSeat: 0 | 1 | null =
+    session.seat0?.telegramUserId === "computer"
+      ? 0
+      : session.seat1?.telegramUserId === "computer"
+        ? 1
+        : null;
+  const declaredSet =
+    session.outcome?.type === "win" && Array.isArray(session.outcome.declaredSet)
+      ? session.outcome.declaredSet
+      : null;
+  const winCells = declaredSet ?? [];
+  const lastMoveCell =
+    vsComputer &&
+    computerSeat != null &&
+    session.status !== "finished" &&
+    session.lastPlacerSeat === computerSeat &&
+    session.lastPlacedCell != null
+      ? session.lastPlacedCell
+      : null;
+  const sharedTraitKeys = declaredSet
+    ? sharedTraitLabelKeys(session.board, declaredSet, session.modules)
+    : [];
+  const sharedTraitText = sharedTraitKeys
+    .map((k) => (copy as Record<string, string>)[k] ?? k)
+    .filter(Boolean)
+    .join(", ");
+  const winnerLine = (() => {
+    if (!session.outcome || session.outcome.type !== "win" || session.outcome.winnerSeat == null) {
+      return null;
+    }
+    const w = session.outcome.winnerSeat;
+    if (surface.viewerSeat != null && w === surface.viewerSeat) return copy.youWon;
+    if (computerSeat != null && w === computerSeat) return copy.computerWon;
+    return copy.opponentWon;
+  })();
   const headlines: Record<string, string> = {
     promptGive: copy.promptGive,
     promptPlace: copy.promptPlace,
     promptWait: vsComputer ? copy.waitingComputer : copy.promptWait,
     promptPieChoice: copy.promptPieChoice,
-    promptFinished: copy.promptFinished,
+    promptFinished: winnerLine ?? copy.promptFinished,
     promptJoin: copy.promptJoin,
     waitingOpponent: copy.waitingOpponent,
   };
@@ -382,12 +419,27 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
             </div>
           ) : null}
         </div>
-        {session.outcome ? (
+        {session.outcome && session.outcome.type !== "win" ? (
           <p className="ex-muted" style={{ margin: "0.35rem 0 0" }}>
             {copy.matchEnded}: {session.outcome.type}
           </p>
         ) : null}
+        {lastMoveCell != null ? (
+          <p className="ex-muted" style={{ margin: "0.35rem 0 0", fontSize: "0.9rem" }}>
+            {copy.computerLastMove}
+          </p>
+        ) : null}
       </ExSurface>
+      {declaredSet && winnerLine ? (
+        <div className="ex-win-banner" role="status">
+          <p className="ex-headline">{winnerLine}</p>
+          {sharedTraitText ? (
+            <p className="ex-muted" style={{ margin: 0 }}>
+              {copy.winByTraits.replace("{traits}", sharedTraitText)}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       {showWaitActions ? (
         <button
           type="button"
@@ -450,6 +502,8 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
         moduleId={moduleId}
         declareCells={declareCells}
         hintCells={hintCells}
+        lastMoveCell={lastMoveCell}
+        winCells={winCells}
         selectableOccupied={surface.showDeclareControls}
         selectableEmpty={surface.showPlaceControls}
         disabled={busy || (!surface.showPlaceControls && !surface.showDeclareControls)}
