@@ -86,6 +86,7 @@ export function toSnapshot(row: typeof sessions.$inferSelect) {
     voidedSets: engine.voidedSets,
     pendingVoidSets: engine.pendingVoidSets,
     lastPlacedCell: engine.lastPlacedCell,
+    lastPlacerSeat: engine.lastPlacerSeat,
     traitCount: 4,
     cellCount: engine.board.length,
     boardLayoutId: "grid4x4",
