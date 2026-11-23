@@ -14,7 +14,7 @@ type Props = {
   copy: {
     appName: string;
     homeTagline: string;
-    startMatch: string;
+    playWithFriend: string;
     playVsComputer: string;
     difficulty: string;
     difficultyEasy: string;
@@ -114,6 +114,13 @@ export function HomeLobby({ apiBase, initData, copy, onStarted }: Props) {
         }}
       />
 
+      <ExPrimaryButton disabled={busy || !initData} onClick={() => void startMatch(false)}>
+        {busy ? copy.creating : copy.playWithFriend}
+      </ExPrimaryButton>
+      <p className="ex-muted" style={{ margin: 0, fontSize: "0.95rem" }}>
+        {copy.homeHint}
+      </p>
+
       <label className="ex-rules__row" style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
         <span className="ex-muted">{copy.difficulty}</span>
         <select
@@ -129,21 +136,14 @@ export function HomeLobby({ apiBase, initData, copy, onStarted }: Props) {
         </select>
       </label>
 
-      <ExPrimaryButton disabled={busy || !initData} onClick={() => void startMatch(true)}>
+      <ExSecondaryButton disabled={busy || !initData} onClick={() => void startMatch(true)}>
         {busy ? copy.creating : copy.playVsComputer}
-      </ExPrimaryButton>
-
-      <ExSecondaryButton disabled={busy || !initData} onClick={() => void startMatch(false)}>
-        {copy.startMatch}
       </ExSecondaryButton>
+      <p className="ex-muted" style={{ margin: 0, fontSize: "0.95rem" }}>
+        {copy.homeHintComputer}
+      </p>
 
-      {error ? (
-        <p className="ex-error">{error}</p>
-      ) : (
-        <p className="ex-muted" style={{ margin: 0, fontSize: "0.95rem" }}>
-          {copy.homeHintComputer}
-        </p>
-      )}
+      {error ? <p className="ex-error">{error}</p> : null}
     </section>
   );
 }
