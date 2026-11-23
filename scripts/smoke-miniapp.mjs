@@ -101,7 +101,9 @@ await page.evaluate(() => {
   };
 });
 
-const cta = page.getByRole("button", { name: /Start a match|Начать партию/i });
+const cta = page.getByRole("button", {
+  name: /Play with a friend|Играть с другом|Start a match|Начать партию/i,
+});
 let ok = false;
 try {
   await cta.waitFor({ timeout: 8000 });
