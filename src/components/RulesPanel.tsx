@@ -21,9 +21,13 @@ type Props = {
   copy: Copy;
 };
 
-/** Inline classic + session rules (018). Parent controls visibility. */
+/** Inline classic + non-default session rules (018/020). */
 export function RulesPanel({ missMode, pieRule, declareHints, copy }: Props) {
-  const missLabel = missMode === "void" ? copy.missVoid : copy.missPersistent;
+  const sessionLines: string[] = [];
+  if (missMode === "void") sessionLines.push(copy.missVoid);
+  if (pieRule) sessionLines.push(`${copy.pieRule}: ${copy.rulesOn}`);
+  if (declareHints) sessionLines.push(`${copy.declareHints}: ${copy.rulesOn}`);
+
   return (
     <div className="ex-rules-panel" role="region" aria-label={copy.rulesTitle}>
       <p className="ex-rules-panel__title">{copy.rulesTitle}</p>
@@ -32,16 +36,16 @@ export function RulesPanel({ missMode, pieRule, declareHints, copy }: Props) {
         <li>{copy.rulesTraits}</li>
         <li>{copy.rulesDeclare}</li>
       </ul>
-      <p className="ex-rules-panel__title">{copy.sessionRules}</p>
-      <ul className="ex-rules-panel__list">
-        <li>{missLabel}</li>
-        <li>
-          {copy.pieRule}: {pieRule ? copy.rulesOn : copy.rulesOff}
-        </li>
-        <li>
-          {copy.declareHints}: {declareHints ? copy.rulesOn : copy.rulesOff}
-        </li>
-      </ul>
+      {sessionLines.length > 0 ? (
+        <>
+          <p className="ex-rules-panel__title">{copy.sessionRules}</p>
+          <ul className="ex-rules-panel__list">
+            {sessionLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </>
+      ) : null}
     </div>
   );
 }
