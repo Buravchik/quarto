@@ -82,6 +82,7 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   const [session, setSession] = useState<Snapshot | null>(null);
   const [selectedPiece, setSelectedPiece] = useState<string | null>(null);
   const [declareCells, setDeclareCells] = useState<number[]>([]);
+  const [declareUiOpen, setDeclareUiOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -117,6 +118,25 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
     return () => window.clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    if (!session) return;
+    const canDeclare = derivePlaySurfaceState({
+      status: session.status,
+      phase: session.phase,
+      turnSeat: session.turnSeat,
+      pieceInHand: session.pieceInHand,
+      seat0: session.seat0,
+      seat1: session.seat1,
+      outcome: session.outcome,
+      pieRule: session.pieRule,
+      viewerTelegramUserId: me,
+    }).showDeclareControls;
+    if (!canDeclare) {
+      setDeclareUiOpen(false);
+      setDeclareCells([]);
+    }
+  }, [session, me]);
+
   async function sendIntent(body: Record<string, unknown>) {
     setBusy(true);
     setError(null);
@@ -134,6 +154,7 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
       if (data.session) setSession(data.session);
       setSelectedPiece(null);
       setDeclareCells([]);
+      setDeclareUiOpen(false);
     } finally {
       setBusy(false);
     }
@@ -306,8 +327,9 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
     !!onLeave;
   const waitingOneRow = showWaitActions || showJoinActions || showLeaveOnly;
 
+  const declaring = surface.showDeclareControls && declareUiOpen;
   const hintSets =
-    surface.showDeclareControls && session.declareHints
+    declaring && session.declareHints
       ? legalDeclareHintSets({
           declareHints: true,
           missMode: session.missMode,
@@ -516,18 +538,34 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
         </div>
       ) : null}
 
-      {surface.showDeclareControls ? (
+      {surface.showDeclareControls && !declareUiOpen ? (
+        <ExPrimaryButton disabled={busy} onClick={() => setDeclareUiOpen(true)}>
+          {copy.declareOpen}
+        </ExPrimaryButton>
+      ) : null}
+      {declaring ? (
         <div className="ex-declare-banner" role="status">
           <p className="ex-headline">{copy.declareSelectLine}</p>
           <p className="ex-muted" style={{ margin: 0 }}>
             {copy.declareSelectedCount.replace("{n}", String(declareCells.length))}
           </p>
-          <ExPrimaryButton
-            disabled={busy || declareCells.length !== 4}
-            onClick={() => void sendIntent({ type: "declare", setCells: declareCells })}
-          >
-            {copy.declareQuarto}
-          </ExPrimaryButton>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            <ExPrimaryButton
+              disabled={busy || declareCells.length !== 4}
+              onClick={() => void sendIntent({ type: "declare", setCells: declareCells })}
+            >
+              {copy.declareConfirm}
+            </ExPrimaryButton>
+            <ExSecondaryButton
+              disabled={busy}
+              onClick={() => {
+                setDeclareUiOpen(false);
+                setDeclareCells([]);
+              }}
+            >
+              {copy.declareCancel}
+            </ExSecondaryButton>
+          </div>
         </div>
       ) : null}
 
@@ -538,9 +576,9 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
         hintCells={hintCells}
         lastMoveCell={lastMoveCell}
         winCells={winCells}
-        selectableOccupied={surface.showDeclareControls}
+        selectableOccupied={declaring}
         selectableEmpty={surface.showPlaceControls}
-        disabled={busy || (!surface.showPlaceControls && !surface.showDeclareControls)}
+        disabled={busy || (!surface.showPlaceControls && !declaring)}
         pieceLabel={labelFor}
         onCell={(i) => {
           if (surface.showPlaceControls && !session.board[i]) {
@@ -548,7 +586,7 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
             return;
           }
           // Declare: only occupied cells (Quarto lines never include empties)
-          if (surface.showDeclareControls && session.board[i]) {
+          if (declaring && session.board[i]) {
             if (hintSets.length > 0) {
               selectDeclareFromHints(i, hintSets);
             } else {
