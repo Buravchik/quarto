@@ -10,14 +10,14 @@ import {
   REFRESH_PREFIX,
   RESULT_PREFIX,
 } from "../../../src/telegram/liveCard";
-import { setBotUsername } from "../../../src/telegram/miniAppUrl";
+import { miniAppTgLink, setBotUsername } from "../../../src/telegram/miniAppUrl";
 
 const SID = "11111111-2222-4333-8444-555555555555";
 const env = { ...process.env };
 
 beforeEach(() => {
   process.env.TELEGRAM_WEBAPP_URL = "https://buravchik.github.io/quarto";
-  process.env.TELEGRAM_MINI_APP_SHORT_NAME = "play";
+  delete process.env.TELEGRAM_MINI_APP_SHORT_NAME;
   setBotUsername("tgquarto_bot");
 });
 afterEach(() => {
@@ -41,11 +41,11 @@ describe("session refs", () => {
 });
 
 describe("cardKeyboard", () => {
-  it("group/inline card: Join opens THIS session via t.me/<bot>/<app>?startapp=", () => {
+  it("group/inline card: Join opens THIS session via Main Mini App t.me/<bot>?startapp=", () => {
     const kb = cardKeyboard({ sessionId: SID, waiting: true, lang: "ru", mode: "url", refresh: true });
     const join = kb.inline_keyboard[0]![0]!;
     expect(join.text).toBe("Присоединиться");
-    expect(join.url).toBe(`https://t.me/tgquarto_bot/play?startapp=${SID}`);
+    expect(join.url).toBe(`https://t.me/tgquarto_bot?startapp=${SID}`);
     expect(kb.inline_keyboard[1]![0]!.callback_data).toBe(`r:${SID}`);
   });
 
@@ -64,6 +64,20 @@ describe("cardKeyboard", () => {
     const urls = kb.inline_keyboard.flat().map((b) => b.url);
     expect(urls).not.toContain("https://t.me");
     expect(kb.inline_keyboard.flat().every((b) => b.url === undefined)).toBe(true);
+  });
+});
+
+describe("miniAppTgLink (Main Mini App direct link)", () => {
+  it("uses t.me/<bot>?startapp=<id> and ignores any legacy short name", () => {
+    process.env.TELEGRAM_MINI_APP_SHORT_NAME = "play";
+    expect(miniAppTgLink(SID)).toBe(`https://t.me/tgquarto_bot?startapp=${SID}`);
+    expect(miniAppTgLink()).toBe("https://t.me/tgquarto_bot?startapp");
+  });
+
+  it("inline card always carries the 🔄 bind button (works without inline feedback)", () => {
+    const kb = cardKeyboard({ sessionId: SID, waiting: true, mode: "url", refresh: true });
+    const all = kb.inline_keyboard.flat();
+    expect(all.some((b) => b.callback_data === `r:${SID}`)).toBe(true);
   });
 });
 
@@ -160,8 +174,9 @@ describe("formatDmText", () => {
 });
 
 describe("miniAppConfigWarnings", () => {
-  it("warns when TELEGRAM_MINI_APP_SHORT_NAME is missing", () => {
-    expect(miniAppConfigWarnings({ TELEGRAM_WEBAPP_URL: "x" }).join(" ")).toMatch(/TELEGRAM_MINI_APP_SHORT_NAME/);
-    expect(miniAppConfigWarnings({ TELEGRAM_WEBAPP_URL: "x", TELEGRAM_MINI_APP_SHORT_NAME: "play" })).toEqual([]);
+  it("no short-name requirement: Main Mini App link needs only TELEGRAM_WEBAPP_URL", () => {
+    expect(miniAppConfigWarnings({ TELEGRAM_WEBAPP_URL: "x" })).toEqual([]);
+    expect(miniAppConfigWarnings({}).join(" ")).toMatch(/TELEGRAM_WEBAPP_URL/);
+    expect(miniAppConfigWarnings({}).join(" ")).not.toMatch(/SHORT_NAME/);
   });
 });

@@ -40,22 +40,21 @@ Two real Telegram accounts are still required for full give/place UX feel.
 
 ## 021 — BotFather prerequisites
 
-1. Main Mini App enabled for @tgquarto_bot (URL `https://buravchik.github.io/quarto/`).
-2. `/newapp` short name (e.g. `play`) → Cloud Run env `TELEGRAM_MINI_APP_SHORT_NAME=play`.
-3. `/setinlinefeedback` → 100 %.
-4. DB migration `supabase/migrations/20261125160000_live_card_invites.sql` applied **before** the bot deploy.
+1. Main Mini App enabled for @tgquarto_bot (URL `https://buravchik.github.io/quarto/`). Invite links are `https://t.me/tgquarto_bot?startapp=<sessionId>` — no /newapp short name.
+2. Optional: `/setinlinefeedback` → 100 % (card binds right after sending). Without it the first 🔄 tap binds the card.
+3. DB migration `supabase/migrations/20261125160000_live_card_invites.sql` applied **before** the bot deploy.
 
 ## 021 — Invite + live card (two accounts: A = host, B = guest)
 
 | # | Scenario | Steps | Expect |
 |---|----------|-------|--------|
 | H | iPhone fit | A (iPhone): Mini App → Play with a friend → waiting screen; then a live game | Board, pool and header fit; nothing cut on the right; vertical swipe on the board does not collapse the app |
-| I | Share = this game | A: share icon → pick group G | Message in G is the real card: «Кварто · A зовёт сыграть», button **Присоединиться**; never «preparing…» |
+| I | Share = this game | A: share icon → pick group G | Message in G is the real card: «Кварто · A зовёт сыграть», button **Присоединиться** (link `t.me/tgquarto_bot?startapp=<id>`, opens the Mini App, not the bot DM); never «preparing…» |
 | J | Invite beats old game | B: start a game vs computer, leave Mini App open; in G tap **Присоединиться** | Mini App opens the invite screen «A зовёт тебя в Кварто» (+ chat title if card came from /new in G), **Присоединиться**, «Вернуться к своей партии» |
 | K | Join | B: **Присоединиться** | Both in the same game; the card in G switches to «В игре · ход …» (edited, not a new message) |
 | L | Live card, no spam | Play 6–8 moves | Card in G is edited each move (who moves); no new messages in G; while both have the app open — no DMs |
 | M | Absent player | B closes the Mini App; A moves | B gets **one** DM «Кварто · против A … Ваш ход» with Open; next time it is replaced, not stacked |
-| N | 🔄 fallback | Inline feedback off (or update lost): tap 🔄 on the card | «Карточка обновлена»; card now updates live |
+| N | 🔄 bind (feedback off) | With /setinlinefeedback OFF: share card, make a move — card may stay stale; tap 🔄 once | «Карточка обновлена»; card shows current state and from now on is edited on every move |
 | O | Inline fallback | Old Telegram client (no shareMessage): share icon | Chat picker with the same card for this session |
 | P | Vs computer quiet | A: Play vs computer, finish a game | Zero bot messages in DM |
 | Q | /new in group | In G: `/new` | Card shows «Чат: «G»»; B's invite screen shows the chat title |

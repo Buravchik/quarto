@@ -12,4 +12,5 @@
 - [x] T010 initData auth_date ≤ 24 h
 - [x] T011 P0 native basics (BackButton, haptics, theme, closing confirmation, activated)
 - [x] T012 Tests (unit + contract) + README / manual smoke BotFather steps
-- [ ] T013 Owner: BotFather setup, apply migration, deploy Cloud Run + Pages, two-account smoke
+- [x] T013 Main Mini App direct links (`t.me/<bot>?startapp=`), drop short-name env; inline bind via 🔄 tested (`inlineBind.ts`)
+- [ ] T014 Owner: apply migration, deploy Cloud Run + Pages, two-account smoke (optional /setinlinefeedback)

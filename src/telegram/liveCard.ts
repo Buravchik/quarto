@@ -160,15 +160,9 @@ export function formatDmText(input: {
   return lines.join("\n");
 }
 
-/** Startup check: without a short name, group links need a Main Mini App configured in BotFather. */
+/** Startup config check (logged as `[config]` warnings by the bot). */
 export function miniAppConfigWarnings(env: Record<string, string | undefined>): string[] {
   const out: string[] = [];
-  if (!env.TELEGRAM_MINI_APP_SHORT_NAME?.trim()) {
-    out.push(
-      "TELEGRAM_MINI_APP_SHORT_NAME is not set — group/inline links fall back to t.me/<bot>?startapp= " +
-        "(works only if a Main Mini App is configured in @BotFather). Create one with /newapp and set the short name.",
-    );
-  }
   if (!env.TELEGRAM_WEBAPP_URL?.trim()) {
     out.push("TELEGRAM_WEBAPP_URL is not set — Mini App buttons are omitted from cards.");
   }

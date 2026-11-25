@@ -103,14 +103,12 @@ API / webhook: Cloud Run `quarto-bot`, переменные в `.env.example`.
 
 Проверки вёрстки: `npm run build && npm run smoke:layout` — игровой экран на 320–430 px без горизонтального скролла.
 
-## Настройка в @BotFather (обязательно для приглашений из групп)
+## Настройка в @BotFather
 
-Без этого ссылки из групп открывают личку с ботом, а не саму партию.
+Ссылки-приглашения ведут в **Main Mini App** бота: `https://t.me/tgquarto_bot?startapp=<sessionId>` (Bot API 8.0, прямая ссылка на Main Mini App). Отдельный `/newapp` и short name не нужны.
 
-1. **Main Mini App**: `/mybots` → @tgquarto_bot → *Bot Settings* → *Configure Mini App* → *Enable Mini App* → URL `https://buravchik.github.io/quarto/`. Тогда работают ссылки `t.me/tgquarto_bot?startapp=<id>`.
-2. **Короткое имя приложения**: `/newapp` → выбрать @tgquarto_bot → название, описание, картинка 640×360 → Web App URL `https://buravchik.github.io/quarto/` → short name, например `play`. Ссылки станут `t.me/tgquarto_bot/play?startapp=<id>`.
-3. **Inline mode** (уже включён): `/setinline` → @tgquarto_bot → плейсхолдер, например `пригласить в Кварто`.
-4. **Inline feedback**: `/setinlinefeedback` → @tgquarto_bot → `100%`. Тогда бот сразу узнаёт `inline_message_id` отправленной карточки и может её обновлять. Если апдейт не пришёл, карточку «привязывает» первое нажатие 🔄 на ней.
-5. На Cloud Run задать `TELEGRAM_MINI_APP_SHORT_NAME=play` (имя из шага 2). Без него бот пишет `[config]`-предупреждение при старте.
+1. **Main Mini App** (уже включён): `/mybots` → @tgquarto_bot → *Bot Settings* → *Configure Mini App* → URL `https://buravchik.github.io/quarto/`.
+2. **Inline mode** (уже включён): нужен для запасного шаринга `switchInlineQuery`.
+3. *Необязательно*: `/setinlinefeedback` → @tgquarto_bot → `100%`. Тогда бот узнаёт `inline_message_id` карточки сразу после отправки. Без этого всё тоже работает: каждая inline-карточка несёт кнопку 🔄, первое нажатие привязывает её к партии, и дальше бот правит её сам.
 
 Подробный сценарий проверки на двух аккаунтах: [docs/telegram-manual-smoke.md](docs/telegram-manual-smoke.md).

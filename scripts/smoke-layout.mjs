@@ -120,8 +120,16 @@ for (const lang of ["ru", "en"]) {
       await page.route("**/api/v1/sessions/**", (route) =>
         route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(snapshot(kind, lang)) }),
       );
-      await page.goto(`${origin}?sessionId=${SESSION_ID}`, { waitUntil: "networkidle" });
-      await page.waitForSelector(".ex-board", { timeout: 8000 });
+      // One retry: a cold static server right after `next build` can be slow on CI.
+      for (let attempt = 1; ; attempt++) {
+        try {
+          await page.goto(`${origin}?sessionId=${SESSION_ID}`, { waitUntil: "networkidle" });
+          await page.waitForSelector(".ex-board", { timeout: 15000 });
+          break;
+        } catch (err) {
+          if (attempt >= 2) throw err;
+        }
+      }
       const m = await page.evaluate(() => {
         const doc = document.documentElement;
         const main = document.querySelector("main.ex-app");

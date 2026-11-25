@@ -4,14 +4,8 @@ import { t } from "../i18n";
 import { handleApi, registerOpenApiStubs } from "./api/router";
 import { cardView, createCard, formatCardMessage, getCard, setCardInlineMessage, setCardMessage } from "./cards";
 import { loadEnvFile } from "./http";
-import {
-  REFRESH_PREFIX,
-  RESULT_PREFIX,
-  cardKeyboard,
-  isSessionRef,
-  miniAppConfigWarnings,
-  parseSessionRef,
-} from "./liveCard";
+import { handleChosenInlineResult, handleRefreshCallback, type InlineBindDeps } from "./inlineBind";
+import { cardKeyboard, isSessionRef, miniAppConfigWarnings } from "./liveCard";
 import { openMiniAppButton, setBotUsername } from "./miniAppUrl";
 import { buildInviteResult, refreshCardMessage, setNotifyTransport } from "./notify";
 import { displayNameFromTelegram } from "./players";
@@ -38,18 +32,12 @@ const ALLOWED_UPDATES = [
 
 type AnyExtra = Record<string, unknown>;
 
-/** 021: bind an inline message (shareMessage / inline mode) to the session's card and refresh it. */
-async function bindInlineMessage(sessionId: string, inlineMessageId: string) {
-  const row = await getSession(sessionId);
-  if (!row) return false;
-  const card = await getCard(row.cardId);
-  if (!card) return false;
-  if (card.inlineMessageId !== inlineMessageId) {
-    await setCardInlineMessage(row.cardId, inlineMessageId);
-  }
-  await refreshCardMessage(row.cardId);
-  return true;
-}
+const inlineBindDeps: InlineBindDeps = {
+  getSession,
+  getCard,
+  setCardInlineMessage,
+  refreshCardMessage,
+};
 
 if (bot) {
   setNotifyTransport({
@@ -184,36 +172,27 @@ if (bot) {
     }
   });
 
-  /** Best effort (needs /setinlinefeedback): bind the sent inline message to its card. */
+  /** Best effort (only with /setinlinefeedback on): bind the sent inline message to its card. */
   bot.on("chosen_inline_result", async (ctx) => {
-    const inlineMessageId = ctx.chosenInlineResult.inline_message_id;
-    const sessionId = parseSessionRef(RESULT_PREFIX, ctx.chosenInlineResult.result_id);
-    if (!inlineMessageId || !sessionId) return;
     try {
-      await bindInlineMessage(sessionId, inlineMessageId);
+      await handleChosenInlineResult(inlineBindDeps, ctx.chosenInlineResult);
     } catch (err) {
       console.error("chosen_inline_result failed", err);
     }
   });
 
-  /** Fallback when chosen_inline_result is not delivered: 🔄 on the card binds + refreshes it. */
+  /** Always-available path: 🔄 on the card carries inline_message_id → bind + refresh. */
   bot.on("callback_query", async (ctx) => {
     const cq = ctx.callbackQuery;
-    const data = "data" in cq ? cq.data : undefined;
-    const sessionId = parseSessionRef(REFRESH_PREFIX, data);
     const copy = t(ctx.from?.language_code);
-    if (!sessionId) {
-      await ctx.answerCbQuery().catch(() => undefined);
-      return;
-    }
     try {
-      if (cq.inline_message_id) {
-        await bindInlineMessage(sessionId, cq.inline_message_id);
-      } else {
-        const row = await getSession(sessionId);
-        if (row) await refreshCardMessage(row.cardId);
-      }
-      await ctx.answerCbQuery(copy.cardRefreshed).catch(() => undefined);
+      const res = await handleRefreshCallback(inlineBindDeps, {
+        data: "data" in cq ? cq.data : undefined,
+        inline_message_id: cq.inline_message_id,
+      });
+      await ctx
+        .answerCbQuery(res === "bound" || res === "refreshed" ? copy.cardRefreshed : undefined)
+        .catch(() => undefined);
     } catch (err) {
       console.error("callback refresh failed", err);
       await ctx.answerCbQuery().catch(() => undefined);
