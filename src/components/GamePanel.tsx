@@ -9,7 +9,7 @@ import { legalDeclareHintSets } from "../quarto/miss";
 import { sharedTraitLabelKeys } from "../quarto/sharedTraits";
 import { formatTimeoutCountdown, timeoutReady } from "../quarto/timeout";
 import { ExPrimaryButton, ExSecondaryButton, ExSurface } from "../theme/components";
-import { IconHelp, IconPersonAdd, IconReplay, IconShare } from "../theme/icons";
+import { IconHelp, IconReplay, IconShare } from "../theme/icons";
 import { Board } from "./Board";
 import { Pool } from "./Pool";
 import { RulesPanel } from "./RulesPanel";
@@ -37,6 +37,9 @@ type Snapshot = {
   pendingVoidSets?: number[][];
   lastPlacedCell?: number | null;
   lastPlacerSeat?: 0 | 1 | null;
+  /** 021: display names per seat + group title for the invite screen. */
+  seatNames?: [string | null, string | null];
+  chatTitle?: string | null;
 };
 
 type Props = {
@@ -44,7 +47,16 @@ type Props = {
   sessionId: string;
   initData: string;
   onLeave?: () => void;
+  /** 021: the viewer's own live game (if any) — offered on the invite screen. */
+  previousSessionId?: string;
+  onSwitchSession?: (sessionId: string) => void;
+  /** 021: viewer is seated in a live (not finished) game → page remembers it. */
+  onSeatedChange?: (sessionId: string, live: boolean) => void;
 };
+
+type PreparedShare = { id: string | null; link: string | null; at: number };
+/** savePreparedInlineMessage ids live for a while; refresh well before that. */
+const PREPARED_TTL_MS = 10 * 60 * 1000;
 
 function readTelegramUserId(): string {
   if (typeof window === "undefined") return "";
@@ -68,7 +80,15 @@ function traitLabel(
   return parts.join(", ");
 }
 
-export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
+export function GamePanel({
+  apiBase,
+  sessionId,
+  initData,
+  onLeave,
+  previousSessionId,
+  onSwitchSession,
+  onSeatedChange,
+}: Props) {
   const copy = useMemo(
     () =>
       t(
@@ -88,16 +108,37 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   const [copied, setCopied] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [prepared, setPrepared] = useState<PreparedShare | null>(null);
 
   const refresh = useCallback(async () => {
     const url = `${apiBase}/api/v1/sessions/${sessionId}?initData=${encodeURIComponent(initData)}`;
     const res = await fetch(url);
     if (!res.ok) {
-      setError(`load ${res.status}`);
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      setError(body.error === "expired_init_data" ? copy.initDataExpired : `load ${res.status}`);
       return;
     }
     setSession((await res.json()) as Snapshot);
     setError(null);
+  }, [apiBase, sessionId, initData, copy.initDataExpired]);
+
+  /**
+   * 021 share: server prepares the live card of THIS session (savePreparedInlineMessage);
+   * fetched ahead of the tap so WebApp.shareMessage runs synchronously inside the gesture.
+   */
+  const prepareShare = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiBase}/api/v1/sessions/${sessionId}/share`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ initData }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { preparedMessageId?: string | null; link?: string | null };
+      setPrepared({ id: data.preparedMessageId ?? null, link: data.link ?? null, at: Date.now() });
+    } catch {
+      /* fallback: switchInlineQuery */
+    }
   }, [apiBase, sessionId, initData]);
 
   useEffect(() => {
@@ -136,6 +177,51 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
       setDeclareCells([]);
     }
   }, [session, me]);
+
+  const viewerSeated =
+    !!me && (session?.seat0?.telegramUserId === me || session?.seat1?.telegramUserId === me);
+  const sessionLive = !!session && session.status !== "finished" && !session.outcome;
+  useEffect(() => {
+    if (!session || !viewerSeated) return;
+    onSeatedChange?.(sessionId, sessionLive);
+  }, [session, viewerSeated, sessionLive, sessionId, onSeatedChange]);
+
+  const ownerWaiting =
+    !!session && session.status === "waiting" && session.seat0?.telegramUserId === me && !session.seat1;
+  useEffect(() => {
+    if (!ownerWaiting || session?.opponentKind === "computer") return;
+    if (prepared && Date.now() - prepared.at < PREPARED_TTL_MS) return;
+    void prepareShare();
+  }, [ownerWaiting, session?.opponentKind, prepared, prepareShare]);
+
+  function shareInvite() {
+    const tg = window.Telegram?.WebApp;
+    const fresh = prepared && Date.now() - prepared.at < PREPARED_TTL_MS ? prepared : null;
+    if (fresh?.id && typeof tg?.shareMessage === "function") {
+      try {
+        tg.shareMessage(fresh.id, () => {
+          setPrepared(null); // one prepared message per share
+          void refresh();
+        });
+        return;
+      } catch {
+        /* old client → fallback */
+      }
+    }
+    // Fallback: inline mode with THIS session id as the query → bot answers with this card.
+    if (tg && typeof tg.switchInlineQuery === "function") {
+      tg.switchInlineQuery(sessionId, ["users", "groups"]);
+      return;
+    }
+    const link = fresh?.link;
+    if (link && tg && typeof tg.openTelegramLink === "function") {
+      tg.openTelegramLink(
+        `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(copy.shareInviteTitle)}`,
+      );
+      return;
+    }
+    setError(copy.cardSent);
+  }
 
   async function sendIntent(body: Record<string, unknown>) {
     setBusy(true);
@@ -320,12 +406,10 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   const showWaitActions =
     showWaitingChrome && surface.expectedAction === "wait" && surface.viewerSeat === 0;
   const showJoinActions = showWaitingChrome && surface.expectedAction === "join";
-  const showLeaveOnly =
-    showWaitingChrome &&
-    surface.expectedAction !== "wait" &&
-    surface.expectedAction !== "join" &&
-    !!onLeave;
+  // Join (invite) and other waiting views: header keeps ? + «New match»; Join lives in the invite card.
+  const showLeaveOnly = showWaitingChrome && !showWaitActions && !!onLeave;
   const waitingOneRow = showWaitActions || showJoinActions || showLeaveOnly;
+  const inviterName = session.seatNames?.[0] ?? null;
 
   const declaring = surface.showDeclareControls && declareUiOpen;
   const hintSets =
@@ -343,7 +427,8 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   const hintCells = hintSets.flat();
 
   async function copyDebugLink() {
-    const link = `${window.location.origin}${window.location.pathname}?sessionId=${sessionId}`;
+    const link =
+      prepared?.link ?? `${window.location.origin}${window.location.pathname}?sessionId=${sessionId}`;
     try {
       await navigator.clipboard.writeText(link);
       setCopied(true);
@@ -354,12 +439,40 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
   }
 
   return (
-    <section style={{ display: "grid", gap: "0.75rem" }}>
+    <section className="ex-game">
       {vsComputer ? (
         <p className="ex-muted" style={{ margin: 0, fontSize: "0.9rem" }}>
           {copy.opponentComputer}
           {difficultyLabel ? ` · ${difficultyLabel}` : ""}
         </p>
+      ) : null}
+      {showJoinActions ? (
+        <ExSurface emphasized className="ex-invite">
+          <p className="ex-headline ex-invite__title">
+            {inviterName
+              ? copy.inviteHeadline.replace("{name}", inviterName)
+              : copy.inviteHeadlineAnon}
+          </p>
+          {session.chatTitle ? (
+            <p className="ex-muted ex-invite__chat">
+              {copy.inviteFromChat.replace("{title}", `«${session.chatTitle}»`)}
+            </p>
+          ) : null}
+          <ExPrimaryButton className="ex-invite__join" disabled={busy} onClick={() => void join()}>
+            {copy.inviteJoin}
+          </ExPrimaryButton>
+          {previousSessionId && onSwitchSession ? (
+            <>
+              <p className="ex-muted ex-invite__note">{copy.inviteOtherGame}</p>
+              <ExSecondaryButton
+                disabled={busy}
+                onClick={() => onSwitchSession(previousSessionId)}
+              >
+                {copy.inviteBackToMine}
+              </ExSecondaryButton>
+            </>
+          ) : null}
+        </ExSurface>
       ) : null}
       <ExSurface emphasized>
         <div className={waitingOneRow ? "ex-waiting-row" : "ex-play-header"}>
@@ -384,48 +497,9 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
                   disabled={busy}
                   aria-label={copy.shareSession}
                   title={copy.shareSession}
-                  onClick={() => {
-                    const tg = window.Telegram?.WebApp;
-                    // Sudoku pattern: pass chat types so Telegram opens a picker
-                    // (without it, the query is inserted into the current bot DM).
-                    if (tg && typeof tg.switchInlineQuery === "function") {
-                      tg.switchInlineQuery("", ["users", "groups"]);
-                      return;
-                    }
-                    if (tg && typeof tg.openTelegramLink === "function") {
-                      const link = `${window.location.origin}${window.location.pathname}?sessionId=${sessionId}`;
-                      const share = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(copy.shareSession)}`;
-                      tg.openTelegramLink(share);
-                      return;
-                    }
-                    setError(copy.cardSent);
-                  }}
+                  onClick={shareInvite}
                 >
                   <IconShare />
-                </ExPrimaryButton>
-                {onLeave ? (
-                  <ExSecondaryButton
-                    className="ex-icon-btn"
-                    disabled={busy}
-                    aria-label={copy.backHome}
-                    title={copy.backHome}
-                    onClick={onLeave}
-                  >
-                    <IconReplay />
-                  </ExSecondaryButton>
-                ) : null}
-              </>
-            ) : null}
-            {showJoinActions ? (
-              <>
-                <ExPrimaryButton
-                  className="ex-icon-btn"
-                  disabled={busy}
-                  aria-label={copy.joinSeat1}
-                  title={copy.joinSeat1}
-                  onClick={() => void join()}
-                >
-                  <IconPersonAdd />
                 </ExPrimaryButton>
                 {onLeave ? (
                   <ExSecondaryButton
@@ -503,7 +577,7 @@ export function GamePanel({ apiBase, sessionId, initData, onLeave }: Props) {
           disabled={busy}
           onClick={() => void copyDebugLink()}
         >
-          {copied ? copy.linkCopied : copy.shareDebugLink}
+          {copied ? copy.linkCopied : prepared?.link ? copy.copyInviteLink : copy.shareDebugLink}
         </button>
       ) : null}
       {error ? <p className="ex-error">{error}</p> : null}

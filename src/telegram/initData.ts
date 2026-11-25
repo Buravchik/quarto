@@ -23,8 +23,20 @@ function parseInitData(initData: string): Record<string, string> {
   return out;
 }
 
-/** Validate Telegram WebApp initData HMAC-SHA-256 per Bot API. */
-export function validateInitData(initData: string, botToken: string): ValidatedInitData {
+/** 021: initData older than this is rejected (Telegram recommends checking auth_date). */
+export const INIT_DATA_MAX_AGE_SEC = 24 * 60 * 60;
+
+function maxAgeFromEnv(): number {
+  const raw = Number(process.env.INIT_DATA_MAX_AGE_SEC);
+  return Number.isFinite(raw) && raw > 0 ? raw : INIT_DATA_MAX_AGE_SEC;
+}
+
+/** Validate Telegram WebApp initData HMAC-SHA-256 per Bot API (+ auth_date freshness). */
+export function validateInitData(
+  initData: string,
+  botToken: string,
+  opts: { maxAgeSec?: number; nowSec?: number } = {},
+): ValidatedInitData {
   if (!initData || !botToken) {
     throw new Error("invalid_init_data");
   }
@@ -57,9 +69,16 @@ export function validateInitData(initData: string, botToken: string): ValidatedI
     throw new Error("invalid_init_data");
   }
 
+  const authDate = Number(data.auth_date ?? 0);
+  const nowSec = opts.nowSec ?? Math.floor(Date.now() / 1000);
+  const maxAge = opts.maxAgeSec ?? maxAgeFromEnv();
+  if (!Number.isFinite(authDate) || authDate <= 0 || nowSec - authDate > maxAge) {
+    throw new Error("expired_init_data");
+  }
+
   return {
     user,
-    authDate: Number(data.auth_date ?? 0),
+    authDate,
     raw: data,
   };
 }

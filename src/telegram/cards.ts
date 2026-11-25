@@ -20,6 +20,8 @@ export async function createCard(opts: {
   ownerTelegramUserId: string;
   surface: CardSurface;
   chatId?: string;
+  /** Group title for /new in a group (021) — shown on the card and in DMs. */
+  chatTitle?: string;
   missMode?: MissMode;
   pieRule?: boolean;
   declareHints?: boolean;
@@ -37,6 +39,7 @@ export async function createCard(opts: {
     ownerTelegramUserId: opts.ownerTelegramUserId,
     surface: opts.surface,
     chatId: opts.chatId ?? null,
+    chatTitle: opts.chatTitle?.trim() || null,
   });
   const sessionId = opts.vsComputer
     ? await createVsComputerSession({
@@ -69,7 +72,8 @@ export async function setCardInlineMessage(cardId: string, inlineMessageId: stri
   const db = getDb();
   await db
     .update(cards)
-    .set({ inlineMessageId, surface: "inline" })
+    // Keep the original surface: a DM card shared via inline stays editable in both places (021).
+    .set({ inlineMessageId })
     .where(eq(cards.cardId, cardId));
 }
 
@@ -135,11 +139,15 @@ export async function cardView(cardId: string) {
       outcome: snap.outcome,
     });
   }
+  const ownerRow = await ensurePlayer(card.ownerTelegramUserId);
   return {
     cardId,
     surface: card.surface,
     chatId: card.chatId,
     messageId: card.messageId,
+    inlineMessageId: card.inlineMessageId ?? null,
+    chatTitle: card.chatTitle ?? null,
+    ownerName: ownerRow.displayName?.trim() || null,
     slots: mapped,
   };
 }
@@ -156,12 +164,27 @@ export function preferredOpenSessionId(
   return slots[0]?.sessionId;
 }
 
-export function formatCardMessage(
-  view: NonNullable<Awaited<ReturnType<typeof cardView>>>,
-  lang?: string,
-): string {
+type CardViewForText = {
+  chatTitle?: string | null;
+  ownerName?: string | null;
+  slots: {
+    status: string;
+    seatLabels?: [string, string];
+    turnSeat: 0 | 1 | null;
+  }[];
+};
+
+export function formatCardMessage(view: CardViewForText, lang?: string): string {
   const copy = t(lang);
-  const lines = [copy.cardTitle, ""];
+  const hasWaiting = view.slots.some((s) => s.status === "waiting");
+  // 021: the card says who invites and from which chat — not just «Quarto».
+  const title =
+    hasWaiting && view.ownerName
+      ? `${copy.cardTitle} · ${copy.cardInviteFrom.replace("{name}", view.ownerName)}`
+      : copy.cardTitle;
+  const lines = [title];
+  if (view.chatTitle) lines.push(copy.cardChat.replace("{title}", `«${view.chatTitle}»`));
+  lines.push("");
   view.slots.forEach((slot, i) => {
     const a = slot.seatLabels?.[0] ?? "—";
     const b = slot.seatLabels?.[1] ?? "—";

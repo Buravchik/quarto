@@ -30,6 +30,8 @@ jobs:
           PAGES_BASE_PATH: /quarto
       - name: Mini App lobby smoke (initData race)
         run: npx playwright install --with-deps chromium && npm run smoke:miniapp
+      - name: Game screen fits 320–430px (no horizontal overflow)
+        run: npm run smoke:layout
 
       - uses: actions/upload-pages-artifact@v3
         with:

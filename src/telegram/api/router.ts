@@ -10,6 +10,7 @@ import {
   postSlotHandler,
   rematchHandler,
   settingsHandler,
+  shareHandler,
 } from "./handlers";
 import { applyCors } from "../http";
 import { rateLimit, rateLimitMutating } from "./rateLimit";
@@ -52,6 +53,7 @@ export function registerOpenApiStubs() {
   add("POST", "/api/v1/sessions/:sessionId/settings", settingsHandler);
   add("POST", "/api/v1/sessions/:sessionId/intent", intentHandler);
   add("POST", "/api/v1/sessions/:sessionId/rematch", rematchHandler);
+  add("POST", "/api/v1/sessions/:sessionId/share", shareHandler);
   add("GET", "/api/v1/me/achievements", getAchievementsHandler);
   add("POST", "/api/v1/me/achievements/pin", pinAchievementsHandler);
 }

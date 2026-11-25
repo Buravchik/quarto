@@ -43,6 +43,8 @@ export function useTelegramWebApp(timeoutMs = 4000): TelegramBoot {
       try {
         tg.ready?.();
         tg.expand?.();
+        // 021: a vertical swipe on the board must not collapse/close the Mini App (Bot API 7.7+).
+        tg.disableVerticalSwipes?.();
       } catch {
         /* ignore */
       }

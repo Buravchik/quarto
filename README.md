@@ -100,3 +100,17 @@ npm run dev
 ```
 
 API / webhook: Cloud Run `quarto-bot`, переменные в `.env.example`.
+
+Проверки вёрстки: `npm run build && npm run smoke:layout` — игровой экран на 320–430 px без горизонтального скролла.
+
+## Настройка в @BotFather (обязательно для приглашений из групп)
+
+Без этого ссылки из групп открывают личку с ботом, а не саму партию.
+
+1. **Main Mini App**: `/mybots` → @tgquarto_bot → *Bot Settings* → *Configure Mini App* → *Enable Mini App* → URL `https://buravchik.github.io/quarto/`. Тогда работают ссылки `t.me/tgquarto_bot?startapp=<id>`.
+2. **Короткое имя приложения**: `/newapp` → выбрать @tgquarto_bot → название, описание, картинка 640×360 → Web App URL `https://buravchik.github.io/quarto/` → short name, например `play`. Ссылки станут `t.me/tgquarto_bot/play?startapp=<id>`.
+3. **Inline mode** (уже включён): `/setinline` → @tgquarto_bot → плейсхолдер, например `пригласить в Кварто`.
+4. **Inline feedback**: `/setinlinefeedback` → @tgquarto_bot → `100%`. Тогда бот сразу узнаёт `inline_message_id` отправленной карточки и может её обновлять. Если апдейт не пришёл, карточку «привязывает» первое нажатие 🔄 на ней.
+5. На Cloud Run задать `TELEGRAM_MINI_APP_SHORT_NAME=play` (имя из шага 2). Без него бот пишет `[config]`-предупреждение при старте.
+
+Подробный сценарий проверки на двух аккаунтах: [docs/telegram-manual-smoke.md](docs/telegram-manual-smoke.md).
