@@ -1,7 +1,7 @@
 /**
  * Mini App URLs.
  * - `web_app` buttons: only work in private chats with the bot (Telegram API).
- * - Cross-chat / inline / groups: use `https://t.me/<bot>/<app>?startapp=` (Sudoku pattern).
+ * - Cross-chat / inline / groups: Main Mini App link `https://t.me/<bot>?startapp=<sessionId>`.
  */
 
 let cachedBotUsername: string | undefined;
@@ -28,16 +28,15 @@ export function miniAppUrl(sessionId?: string): string | undefined {
 }
 
 /**
- * Deep link that opens the Mini App inside Telegram from any chat (inline/group).
- * Prefers short-name app path when TELEGRAM_MINI_APP_SHORT_NAME is set.
+ * Deep link that opens the bot's Main Mini App inside Telegram from any chat (inline/group):
+ * `https://t.me/<bot>?startapp=<sessionId>` (Bot API 8.0 Main Mini App direct link).
+ * Requires the Main Mini App to be enabled in @BotFather — no separate /newapp short name.
  */
 export function miniAppTgLink(sessionId?: string): string | undefined {
   const user = botUsername();
   if (!user) return undefined;
-  const short = process.env.TELEGRAM_MINI_APP_SHORT_NAME?.trim();
-  const base = short ? `https://t.me/${user}/${short}` : `https://t.me/${user}`;
-  if (!sessionId) return short ? base : `https://t.me/${user}`;
-  return `${base}?startapp=${encodeURIComponent(sessionId)}`;
+  if (!sessionId) return `https://t.me/${user}?startapp`;
+  return `https://t.me/${user}?startapp=${encodeURIComponent(sessionId)}`;
 }
 
 /** Private chat with bot → web_app. Elsewhere → t.me deep link url button. */

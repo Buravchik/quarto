@@ -100,3 +100,15 @@ npm run dev
 ```
 
 API / webhook: Cloud Run `quarto-bot`, переменные в `.env.example`.
+
+Проверки вёрстки: `npm run build && npm run smoke:layout` — игровой экран на 320–430 px без горизонтального скролла.
+
+## Настройка в @BotFather
+
+Ссылки-приглашения ведут в **Main Mini App** бота: `https://t.me/tgquarto_bot?startapp=<sessionId>` (Bot API 8.0, прямая ссылка на Main Mini App). Отдельный `/newapp` и short name не нужны.
+
+1. **Main Mini App** (уже включён): `/mybots` → @tgquarto_bot → *Bot Settings* → *Configure Mini App* → URL `https://buravchik.github.io/quarto/`.
+2. **Inline mode** (уже включён): нужен для запасного шаринга `switchInlineQuery`.
+3. *Необязательно*: `/setinlinefeedback` → @tgquarto_bot → `100%`. Тогда бот узнаёт `inline_message_id` карточки сразу после отправки. Без этого всё тоже работает: каждая inline-карточка несёт кнопку 🔄, первое нажатие привязывает её к партии, и дальше бот правит её сам.
+
+Подробный сценарий проверки на двух аккаунтах: [docs/telegram-manual-smoke.md](docs/telegram-manual-smoke.md).

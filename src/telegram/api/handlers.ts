@@ -3,11 +3,12 @@ import { applyIntent, type Intent } from "../../quarto/engine";
 import { addSlot, cardView, createCard, SLOT_CAP } from "../cards";
 import { loadEnvFile, readJson, sendJson } from "../http";
 import { validateInitData } from "../initData";
-import { dispatchSessionEvents } from "../notify";
+import { buildInviteResult, dispatchSessionEvents, getNotifyTransport } from "../notify";
 import {
   displayNameFromInitUser,
   ensurePlayer,
   getAchievements,
+  getPlayerName,
   grantAchievements,
   grantMatchUnlocks,
   pinAchievements,
@@ -17,6 +18,7 @@ import {
   engineFromRow,
   getSession,
   joinSession,
+  markPresent,
   rematchAction,
   runComputerTurns,
   saveEngine,
@@ -40,6 +42,11 @@ function auth(initData: string | undefined) {
   return validateInitData(initData, botToken());
 }
 
+/** 401 body: `expired_init_data` lets the Mini App ask for a reopen instead of a generic error. */
+function authError(err: unknown) {
+  return { error: err instanceof Error && err.message === "expired_init_data" ? "expired_init_data" : "invalid_init_data" };
+}
+
 export async function getCardHandler(
   req: IncomingMessage,
   res: ServerResponse,
@@ -51,8 +58,8 @@ export async function getCardHandler(
     const view = await cardView(params.cardId!);
     if (!view) return sendJson(res, 404, { error: "not_found" });
     return sendJson(res, 200, view);
-  } catch {
-    return sendJson(res, 401, { error: "invalid_init_data" });
+  } catch (err) {
+    return sendJson(res, 401, authError(err));
   }
 }
 
@@ -86,7 +93,10 @@ export async function postCardHandler(req: IncomingMessage, res: ServerResponse)
       vsComputer: body.vsComputer,
       difficulty,
     });
-    // Mini App lobby start → Telegram-native card DM (not orphan session)
+    // 021: vs computer → zero bot messages. PvP → one live card in the bot DM (edited later).
+    if (body.vsComputer) {
+      return sendJson(res, 201, { ...created, cardDm: false });
+    }
     const { sendChallengeCardDm } = await import("../notify");
     const dm = await sendChallengeCardDm({
       telegramUserId: String(user.user.id),
@@ -95,8 +105,8 @@ export async function postCardHandler(req: IncomingMessage, res: ServerResponse)
       lang,
     });
     return sendJson(res, 201, { ...created, cardDm: dm.ok });
-  } catch {
-    return sendJson(res, 401, { error: "invalid_init_data" });
+  } catch (err) {
+    return sendJson(res, 401, authError(err));
   }
 }
 
@@ -125,8 +135,8 @@ export async function postSlotHandler(
       return sendJson(res, 409, { error: result.error, max: SLOT_CAP });
     }
     return sendJson(res, 201, result);
-  } catch {
-    return sendJson(res, 401, { error: "invalid_init_data" });
+  } catch (err) {
+    return sendJson(res, 401, authError(err));
   }
 }
 
@@ -151,8 +161,8 @@ export async function joinHandler(
     await dispatchSessionEvents(params.sessionId!, ["opponent_joined", "turn_changed"]);
     const row = await getSession(params.sessionId!);
     return sendJson(res, 200, row ? toSnapshot(row) : { ok: true });
-  } catch {
-    return sendJson(res, 401, { error: "invalid_init_data" });
+  } catch (err) {
+    return sendJson(res, 401, authError(err));
   }
 }
 
@@ -223,8 +233,8 @@ export async function intentHandler(
       session: updated ? toSnapshot(updated) : null,
       events: allEvents,
     });
-  } catch {
-    return sendJson(res, 401, { error: "invalid_init_data" });
+  } catch (err) {
+    return sendJson(res, 401, authError(err));
   }
 }
 
@@ -235,15 +245,67 @@ export async function getSessionHandler(
 ) {
   try {
     const url = new URL(req.url ?? "/", "http://localhost");
-    auth(url.searchParams.get("initData") ?? undefined);
+    const user = auth(url.searchParams.get("initData") ?? undefined);
     let row = await getSession(params.sessionId!);
     if (!row) return sendJson(res, 404, { error: "not_found" });
     // Resume: if computer to move, advance now
     await runComputerTurns(params.sessionId!);
     row = (await getSession(params.sessionId!)) ?? row;
-    return sendJson(res, 200, toSnapshot(row));
-  } catch {
-    return sendJson(res, 401, { error: "invalid_init_data" });
+    const uid = String(user.user.id);
+    const seat0 = row.seat0 as Seat;
+    const seat1 = row.seat1 as Seat;
+    if (seat0?.telegramUserId === uid || seat1?.telegramUserId === uid) {
+      void markPresent(params.sessionId!, uid);
+    }
+    // 021 invite screen: who invites and from which chat.
+    const card = await getCard(row.cardId);
+    const seatNames = [
+      await getPlayerName(seat0?.telegramUserId),
+      await getPlayerName(seat1?.telegramUserId),
+    ];
+    return sendJson(res, 200, {
+      ...toSnapshot(row),
+      seatNames,
+      chatTitle: card?.chatTitle ?? null,
+    });
+  } catch (err) {
+    return sendJson(res, 401, authError(err));
+  }
+}
+
+/**
+ * 021: POST /api/v1/sessions/:id/share — savePreparedInlineMessage for WebApp.shareMessage.
+ * The prepared message is the live card of THIS session (startapp=<sessionId>), no placeholder.
+ * Response: { preparedMessageId?, link? } — client falls back to switchInlineQuery(sessionId).
+ */
+export async function shareHandler(
+  req: IncomingMessage,
+  res: ServerResponse,
+  params: Record<string, string>,
+) {
+  let user;
+  try {
+    const body = await readJson<{ initData?: string }>(req);
+    user = auth(body.initData);
+  } catch (err) {
+    return sendJson(res, 401, authError(err));
+  }
+  const built = await buildInviteResult(params.sessionId!);
+  if (!built) return sendJson(res, 404, { error: "not_found" });
+  const uid = String(user.user.id);
+  const seated = requireSeated(built.row.seat0 as Seat, built.row.seat1 as Seat, uid);
+  if (!seated.ok) return sendJson(res, 403, { error: seated.error });
+  if (built.row.difficulty) return sendJson(res, 409, { error: "conflict" });
+  const tr = getNotifyTransport();
+  if (!tr?.savePreparedInlineMessage) {
+    return sendJson(res, 200, { preparedMessageId: null, link: built.link });
+  }
+  try {
+    const prepared = await tr.savePreparedInlineMessage(uid, built.article);
+    return sendJson(res, 200, { preparedMessageId: prepared.id, link: built.link });
+  } catch (err) {
+    console.warn("savePreparedInlineMessage failed", String(err));
+    return sendJson(res, 200, { preparedMessageId: null, link: built.link });
   }
 }
 
@@ -275,8 +337,8 @@ export async function settingsHandler(
     }
     const row = await getSession(params.sessionId!);
     return sendJson(res, 200, row ? toSnapshot(row) : { ok: true });
-  } catch {
-    return sendJson(res, 401, { error: "invalid_init_data" });
+  } catch (err) {
+    return sendJson(res, 401, authError(err));
   }
 }
 
@@ -307,8 +369,8 @@ export async function rematchHandler(
       if (other && other !== COMPUTER_USER_ID) await grantAchievements(other, ["rematch"]);
     }
     return sendJson(res, 200, result);
-  } catch {
-    return sendJson(res, 401, { error: "invalid_init_data" });
+  } catch (err) {
+    return sendJson(res, 401, authError(err));
   }
 }
 
@@ -318,8 +380,8 @@ export async function getAchievementsHandler(req: IncomingMessage, res: ServerRe
     const user = auth(url.searchParams.get("initData") ?? undefined);
     const view = await getAchievements(String(user.user.id));
     return sendJson(res, 200, view);
-  } catch {
-    return sendJson(res, 401, { error: "invalid_init_data" });
+  } catch (err) {
+    return sendJson(res, 401, authError(err));
   }
 }
 
@@ -330,7 +392,7 @@ export async function pinAchievementsHandler(req: IncomingMessage, res: ServerRe
     const result = await pinAchievements(String(user.user.id), body.pinned ?? []);
     if ("error" in result) return sendJson(res, 400, { error: result.error });
     return sendJson(res, 200, result);
-  } catch {
-    return sendJson(res, 401, { error: "invalid_init_data" });
+  } catch (err) {
+    return sendJson(res, 401, authError(err));
   }
 }

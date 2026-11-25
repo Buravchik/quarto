@@ -28,6 +28,38 @@ export function displayNameFromInitUser(user: TelegramWebAppUser): string {
   return displayNameFromTelegram(user);
 }
 
+/** Display name without side effects (021 invite screen / DMs). Computer → "Computer". */
+export async function getPlayerName(telegramUserId: string | null | undefined): Promise<string | null> {
+  if (!telegramUserId) return null;
+  if (telegramUserId === COMPUTER_USER_ID) return "Computer";
+  try {
+    const db = getDb();
+    const rows = await db
+      .select({ displayName: players.displayName })
+      .from(players)
+      .where(eq(players.telegramUserId, telegramUserId))
+      .limit(1);
+    return rows[0]?.displayName?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getPlayerLanguage(telegramUserId: string | null | undefined): Promise<string> {
+  if (!telegramUserId) return "en";
+  try {
+    const db = getDb();
+    const rows = await db
+      .select({ language: players.language })
+      .from(players)
+      .where(eq(players.telegramUserId, telegramUserId))
+      .limit(1);
+    return rows[0]?.language || "en";
+  } catch {
+    return "en";
+  }
+}
+
 export async function ensurePlayer(
   telegramUserId: string,
   displayName = "",

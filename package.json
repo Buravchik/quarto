@@ -16,6 +16,7 @@
     "test:contract": "vitest run tests/contract",
     "test:miniapp": "vitest run tests/unit/miniapp",
     "smoke:miniapp": "node scripts/smoke-miniapp.mjs",
+    "smoke:layout": "node scripts/smoke-layout.mjs",
     "smoke:api": "node scripts/smoke-prod.mjs",
     "bot:start": "tsx src/telegram/bot.ts",
     "bot:docker": "docker build -t quarto-bot . && docker run --env-file .env -p 8080:8080 quarto-bot",

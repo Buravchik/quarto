@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { getDb } from "../../db/client";
 import { sessions } from "../../db/schema";
@@ -186,6 +186,59 @@ export async function getSession(sessionId: string) {
   const db = getDb();
   const rows = await db.select().from(sessions).where(eq(sessions.sessionId, sessionId)).limit(1);
   return rows[0] ?? null;
+}
+
+/** 021: open PvP invites owned by this user (inline mode with empty query). */
+export async function listWaitingSessionsForOwner(userId: string, limit = 5) {
+  const db = getDb();
+  return db
+    .select()
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.status, "waiting"),
+        isNull(sessions.difficulty),
+        sql`${sessions.seat0}->>'telegramUserId' = ${userId}`,
+      ),
+    )
+    .orderBy(desc(sessions.createdAt))
+    .limit(limit);
+}
+
+const presenceWrites = new Map<string, number>();
+const PRESENCE_WRITE_EVERY_MS = 10_000;
+
+/**
+ * 021: remember that a seated player has the Mini App open (GET poll). Throttled per
+ * session+user so the 2.5 s poll does not turn into a DB write each time. Never throws.
+ */
+export async function markPresent(sessionId: string, userId: string, nowMs = Date.now()) {
+  const key = `${sessionId}:${userId}`;
+  const last = presenceWrites.get(key) ?? 0;
+  if (nowMs - last < PRESENCE_WRITE_EVERY_MS) return;
+  presenceWrites.set(key, nowMs);
+  try {
+    const db = getDb();
+    const iso = new Date(nowMs).toISOString();
+    await db
+      .update(sessions)
+      .set({
+        presence: sql`coalesce(${sessions.presence}, '{}'::jsonb) || jsonb_build_object(${userId}::text, ${iso}::text)`,
+      })
+      .where(eq(sessions.sessionId, sessionId));
+  } catch (err) {
+    console.warn("markPresent failed", String(err));
+  }
+}
+
+/** 021: store (or forget with null) the single status DM message id for a seat. */
+export async function setDmMessage(sessionId: string, userId: string, messageId: number | null) {
+  const db = getDb();
+  const patch =
+    messageId == null
+      ? sql`coalesce(${sessions.dmMessages}, '{}'::jsonb) - ${userId}::text`
+      : sql`coalesce(${sessions.dmMessages}, '{}'::jsonb) || jsonb_build_object(${userId}::text, ${messageId}::int)`;
+  await db.update(sessions).set({ dmMessages: patch }).where(eq(sessions.sessionId, sessionId));
 }
 
 export async function listSessionsForCard(cardId: string) {

@@ -25,6 +25,8 @@ export const cards = pgTable("cards", {
   messageId: integer("message_id"),
   /** Set when the card was dropped via inline mode (editable via inline_message_id). */
   inlineMessageId: varchar("inline_message_id", { length: 128 }),
+  /** Group title when the card was posted with /new in a group (021). */
+  chatTitle: text("chat_title"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -58,6 +60,10 @@ export const sessions = pgTable("sessions", {
   pieceInHand: varchar("piece_in_hand", { length: 32 }),
   voidedSets: jsonb("voided_sets").$type<number[][]>().notNull().default([]),
   turnNotifiedAt: timestamp("turn_notified_at", { withTimezone: true }),
+  /** 021: one editable status DM per human seat — { [telegramUserId]: message_id }. */
+  dmMessages: jsonb("dm_messages").$type<Record<string, number>>().notNull().default({}),
+  /** 021: last Mini App poll per seat — { [telegramUserId]: ISO time }; absent players get DM pings. */
+  presence: jsonb("presence").$type<Record<string, string>>().notNull().default({}),
   outcome: jsonb("outcome"),
   rematchOfSessionId: varchar("rematch_of_session_id", { length: 64 }),
   rematchOffer: jsonb("rematch_offer").$type<{
