@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { t } from "../i18n";
 import { decodeChannels } from "../pieces/decode";
 import { PieceToken } from "../pieces/PieceToken";
@@ -8,6 +8,7 @@ import { derivePlaySurfaceState } from "../play/derivePlaySurfaceState";
 import { legalDeclareHintSets } from "../quarto/miss";
 import { sharedTraitLabelKeys } from "../quarto/sharedTraits";
 import { formatTimeoutCountdown, timeoutReady } from "../quarto/timeout";
+import { haptic, useClosingConfirmation, useTelegramEvent } from "../telegram/native";
 import { ExPrimaryButton, ExSecondaryButton, ExSurface } from "../theme/components";
 import { IconHelp, IconReplay, IconShare } from "../theme/icons";
 import { Board } from "./Board";
@@ -154,6 +155,9 @@ export function GamePanel({
     };
   }, [refresh]);
 
+  // 021 P0: Telegram brings the Mini App back from background → reload state immediately.
+  useTelegramEvent("activated", () => void refresh());
+
   useEffect(() => {
     const id = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(id);
@@ -181,6 +185,25 @@ export function GamePanel({
   const viewerSeated =
     !!me && (session?.seat0?.telegramUserId === me || session?.seat1?.telegramUserId === me);
   const sessionLive = !!session && session.status !== "finished" && !session.outcome;
+  // 021 P0: confirm before closing during an active PvP game (not vs computer, not waiting).
+  useClosingConfirmation(
+    viewerSeated &&
+      session?.opponentKind !== "computer" &&
+      (session?.status === "active" || session?.status === "pie"),
+  );
+
+  // 021 P0: haptic on the match result for the viewer.
+  const outcomeKey = session?.outcome ? `${session.outcome.type}:${session.outcome.winnerSeat ?? ""}` : "";
+  const prevOutcome = useRef<string | null>(null);
+  useEffect(() => {
+    if (!session) return;
+    if (prevOutcome.current === "" && outcomeKey && viewerSeated) {
+      const mySeat = session.seat0?.telegramUserId === me ? 0 : 1;
+      const w = session.outcome?.winnerSeat;
+      haptic(w == null ? "warning" : w === mySeat ? "success" : "error");
+    }
+    prevOutcome.current = outcomeKey;
+  }, [outcomeKey, session, viewerSeated, me]);
   useEffect(() => {
     if (!session || !viewerSeated) return;
     onSeatedChange?.(sessionId, sessionLive);
@@ -234,10 +257,15 @@ export function GamePanel({
       });
       const data = (await res.json()) as { session?: Snapshot; error?: string };
       if (!res.ok) {
+        haptic("error");
         setError(data.error ?? `intent ${res.status}`);
         return;
       }
-      if (data.session) setSession(data.session);
+      haptic(body.type === "declare" ? "medium" : "light");
+      if (data.session) {
+        const next = data.session;
+        setSession((prev) => ({ ...next, seatNames: next.seatNames ?? prev?.seatNames, chatTitle: next.chatTitle ?? prev?.chatTitle }));
+      }
       setSelectedPiece(null);
       setDeclareCells([]);
       setDeclareUiOpen(false);
@@ -256,10 +284,12 @@ export function GamePanel({
       });
       const data = (await res.json()) as Snapshot & { error?: string };
       if (!res.ok) {
+        haptic("error");
         setError(data.error ?? `join ${res.status}`);
         return;
       }
-      setSession(data);
+      haptic("success");
+      setSession((prev) => ({ ...data, seatNames: data.seatNames ?? prev?.seatNames, chatTitle: data.chatTitle ?? prev?.chatTitle }));
     } finally {
       setBusy(false);
     }
@@ -679,7 +709,10 @@ export function GamePanel({
           moduleId={moduleId}
           selected={selectedPiece}
           disabled={busy || !surface.showGiveControls}
-          onSelect={setSelectedPiece}
+          onSelect={(id) => {
+            haptic("select");
+            setSelectedPiece(id);
+          }}
           pieceLabel={labelFor}
         />
         {surface.showGiveControls ? (

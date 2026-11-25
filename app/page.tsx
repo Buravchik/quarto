@@ -7,6 +7,7 @@ import { HomeLobby } from "../src/components/HomeLobby";
 import { t } from "../src/i18n";
 import { applySchemeToDocument, resolveScheme } from "../src/theme/scheme";
 import { readStartParam, resolveLaunchSessionId } from "../src/telegram/launch";
+import { syncTelegramChrome, useBackButton, useTelegramEvent } from "../src/telegram/native";
 import { useTelegramWebApp } from "../src/telegram/useTelegramWebApp";
 
 const CONSUMED_START_KEY = "quarto:consumedStartParam";
@@ -65,12 +66,30 @@ export default function HomePage() {
   useEffect(() => {
     const scheme = resolveScheme();
     applySchemeToDocument(scheme);
+    syncTelegramChrome(scheme);
   }, [ready]);
+
+  // 021 P0: follow Telegram light/dark switches live (themeParams / colorScheme).
+  useTelegramEvent("themeChanged", () => {
+    const scheme = resolveScheme();
+    applySchemeToDocument(scheme);
+    syncTelegramChrome(scheme);
+  });
 
   function enterSession(next: string) {
     setSessionId(next);
     setSessionInUrl(next);
   }
+
+  function leaveSession() {
+    setSessionId("");
+    const url = new URL(window.location.href);
+    url.searchParams.delete("sessionId");
+    window.history.replaceState({}, "", url.toString());
+  }
+
+  // 021 P0: Telegram BackButton in a game → lobby.
+  useBackButton(!!sessionId && !!initData, leaveSession);
 
   return (
     <main className="ex-app" data-expressive="true">
@@ -137,12 +156,7 @@ export default function HomePage() {
               setLastSessionId(null);
             }
           }}
-          onLeave={() => {
-            setSessionId("");
-            const url = new URL(window.location.href);
-            url.searchParams.delete("sessionId");
-            window.history.replaceState({}, "", url.toString());
-          }}
+          onLeave={leaveSession}
         />
 
       )}

@@ -10,6 +10,6 @@
 - [x] T008 notify: one card refresh + one DM sync per request; 0 DMs vs computer
 - [x] T009 Mini App: start_param > ?sessionId, invite screen, shareMessage with fallback
 - [x] T010 initData auth_date ≤ 24 h
-- [ ] T011 P0 native basics (BackButton, haptics, theme, closing confirmation, activated)
+- [x] T011 P0 native basics (BackButton, haptics, theme, closing confirmation, activated)
 - [x] T012 Tests (unit + contract) + README / manual smoke BotFather steps
 - [ ] T013 Owner: BotFather setup, apply migration, deploy Cloud Run + Pages, two-account smoke
